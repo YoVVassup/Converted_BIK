@@ -1,0 +1,11 @@
+## Video Cutscene
+*.bik
+
+## Original files
+Clean/
+
+## Temp converter files
+Temp_MP4_Files/
+
+## Log file
+conversion_log.txt
