@@ -75,3 +75,13 @@ Converted_BIK.bat -h264
 
 
 > **Примечание:** В процессе работы скрипт будет создавать временные файлы и папки. Все результаты конвертации будут сохранены в каталоге `Final_BIK/`.
+
+Для проверки работы использовал [Fullscreen cutscenes - AI-Upscaled - boosted to 30 FPS от RA2YR](https://disk.yandex.ru/d/RSHAe2bjTJMmFQ)
+
+## Благодарности
+
+* создателям [RADTOOLS](https://www.radgametools.com/)
+
+* создателям [ffmpeg](https://rwijnsma.home.xs4all.nl/files/ffmpeg/) (универсальной модификации под любые windows)
+
+* [DarK600](https://forums.nexusmods.com/profile/41423505-dark600dionis/) (за предоставленные Fullscreen cutscenes - AI-Upscaled - boosted to 30 FPS от RA2YR)
