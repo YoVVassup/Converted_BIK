@@ -2,10 +2,14 @@
 *.bik
 
 ## Original files
-Clean/
+Clean_BIK/
+Clean_MP4/
+WAV_Sound/
 
-## Temp converter files
-Temp_MP4_Files/
+## Сonverter files
+Final_BIK_RA1/
+Final_BIK_RA2/
+Final_BIK_RA2YR/
 
 ## Log file
 conversion_log.txt
