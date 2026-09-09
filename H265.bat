@@ -1,114 +1,143 @@
 @echo off
-chcp 65001 >nul
+chcp 65001 > nul
 setlocal enabledelayedexpansion
 
-echo ---------------------------------------
-echo Конвертер H.265 to H.264 (без аудио)
-echo ---------------------------------------
-echo.
+call "%~dp0config_loader.bat"
 
-rem Определяем текущую директорию (где находится скрипт)
 set "SCRIPT_DIR=%~dp0"
-rem Убираем завершающий обратный слеш
-if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
+if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1!"
 
-echo Скрипт расположен в: %SCRIPT_DIR%
+set "SOURCE="
+set "OUTPUT="
+set "DRY_RUN=0"
+
+if not "%~1"=="" (
+    "%~dp0third-party\CMDParse\CMDParse.exe" --mode:h265 %* > "%TEMP%\h265_args.txt"
+    for /f "usebackq tokens=1,* delims==" %%A in ("%TEMP%\h265_args.txt") do (
+        set "%%A=%%B"
+    )
+    del "%TEMP%\h265_args.txt" 2>nul
+)
+
+echo ---------------------------------------
+echo H.265 to H.264 Converter (no audio)
+echo ---------------------------------------
 echo.
 
-rem Проверяем наличие папки Converted и создаем если нужно
-if not exist "%SCRIPT_DIR%\Converted" (
-    echo Создаю папку Converted...
-    mkdir "%SCRIPT_DIR%\Converted"
-    echo Папка Converted создана.
-    echo.
+echo Script location: %SCRIPT_DIR%
+echo.
+
+if not defined FFMPEG_PATH (
+    where ffmpeg >nul 2>nul
+    if !errorlevel! equ 0 (
+        set "FFMPEG_PATH=ffmpeg"
+    ) else if exist "%SCRIPT_DIR%\third-party\ffmpeg.exe" (
+        set "FFMPEG_PATH=%SCRIPT_DIR%\third-party\ffmpeg.exe"
+    )
 )
+
+if not defined FFMPEG_PATH (
+    echo ERROR: ffmpeg not found!
+    echo Install ffmpeg or place ffmpeg.exe in the script directory.
+    echo.
+    pause
+    endlocal
+    exit /b 1
+)
+
+echo [OK] ffmpeg found: !FFMPEG_PATH!
+echo.
+
+if not exist "%SCRIPT_DIR%\Converted" mkdir "%SCRIPT_DIR%\Converted" 2>nul
 
 :SELECT_FOLDER
-rem Запрос пути к папке с видеофайлами
-set "source_folder="
-set /p "source_folder=Введите путь к папке с видеофайлами: "
+if defined SOURCE (
+    set "source_folder=!SOURCE!"
+    set "source_folder=!source_folder:"=!"
+) else (
+    set "source_folder="
+    set /p "source_folder=Enter path to video folder: "
+    set "source_folder=!source_folder:"=!"
+)
 
-rem Убираем кавычки если они есть
-set "source_folder=!source_folder:"=!"
-
-rem Если путь пустой, используем текущую директорию скрипта
 if "!source_folder!"=="" (
     set "source_folder=!SCRIPT_DIR!"
-    echo Использую текущую директорию скрипта.
+    echo Using script directory.
     echo.
 )
 
-rem Преобразуем относительный путь в абсолютный
 if not "!source_folder:~0,1!"=="\" (
     if not "!source_folder:~1,1!"==":" (
-        rem Это относительный путь - преобразуем его в абсолютный относительно директории скрипта
         set "source_folder=!SCRIPT_DIR!\!source_folder!"
     )
 )
 
-rem Проверка существования папки
 if not exist "!source_folder!\" (
     echo.
-    echo Ошибка: Папка "!source_folder!" не существует!
-    echo.
-    goto SELECT_FOLDER
+    echo Error: Folder "!source_folder!" does not exist!
+    if not defined SOURCE (echo. & goto SELECT_FOLDER)
+    endlocal
+    exit /b 1
 )
 
-rem Получаем абсолютный путь к выбранной папке
 for %%I in ("!source_folder!") do set "source_folder_abs=%%~fI"
 
 echo.
-echo Папка для конвертации: !source_folder_abs!
+echo Folder: !source_folder_abs!
 echo.
 
-rem Переходим в выбранную папку
+set "output_dir=%SCRIPT_DIR%\Converted"
+if defined OUTPUT set "output_dir=!OUTPUT!"
+
+if not exist "!output_dir!" mkdir "!output_dir!" 2>nul
+
 pushd "!source_folder_abs!" 2>nul
 if errorlevel 1 (
     echo.
-    echo Ошибка: Не удается перейти в указанную папку!
+    echo Error: Cannot access folder!
     echo.
     popd
-    goto SELECT_FOLDER
+    if not defined SOURCE (goto SELECT_FOLDER)
+    endlocal
+    exit /b 1
 )
 
-echo Начинаю обработку файлов...
+echo Processing files...
 echo.
 
-rem Счетчик обработанных файлов
 set file_count=0
 
-rem Обрабатываем все поддерживаемые видеофайлы
 for %%i in (*.mp4 *.mkv *.mov *.avi *.m4v *.ts *.webm *.flv) do (
-    echo Обработка [!file_count!]: %%~nxi
+    set /a file_count+=1
+    echo Processing [!file_count!]: %%~nxi
     
-    rem Генерируем уникальное имя для логов
     set "logname=%%~ni_!RANDOM!!RANDOM!"
     
-    rem Первый проход
-    ffmpeg -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 1 -passlogfile "!logname!" -f mp4 NUL 2>nul
+    if !DRY_RUN! equ 0 (
+        "!FFMPEG_PATH!" -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 1 -passlogfile "!logname!" -f mp4 NUL 2>nul
+        
+        "!FFMPEG_PATH!" -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 2 -passlogfile "!logname!" -movflags +faststart "!output_dir!\%%~ni.mp4" 2>nul
+        
+        if exist "!logname!-0.log" del "!logname!-0.log"
+        if exist "!logname!-0.log.mbtree" del "!logname!-0.log.mbtree"
+    ) else (
+        echo    [DRY_RUN] Would convert: %%~nxi
+    )
     
-    rem Второй проход
-    ffmpeg -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 2 -passlogfile "!logname!" -movflags +faststart "%SCRIPT_DIR%\Converted\%%~ni.mp4" 2>nul
-    
-    rem Удаляем временные файлы
-    if exist "!logname!-0.log" del "!logname!-0.log"
-    if exist "!logname!-0.log.mbtree" del "!logname!-0.log.mbtree"
-    
-    set /a file_count+=1
-    echo Готово: %%~ni.mp4
+    echo Done: %%~ni.mp4
     echo.
 )
 
-rem Возвращаемся в исходную директорию
 popd
 
 echo ---------------------------------------
 if !file_count! equ 0 (
-    echo Файлы для обработки не найдены.
+    echo No files found.
 ) else (
-    echo Обработано файлов: !file_count!
-    echo Результаты сохранены в: "%SCRIPT_DIR%\Converted"
+    echo Processed: !file_count!
+    echo Results saved to: "!output_dir!"
 )
 echo ---------------------------------------
 echo.
-pause
+endlocal
+exit /b 0

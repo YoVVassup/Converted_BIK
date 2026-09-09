@@ -1,245 +1,368 @@
-# Скрипт конвертации BIK-видео для игр Command & Conquer
+# 🎮 BIK Video Conversion Pipeline for Command & Conquer
 
-Этот пакетный файл предназначен для автоматической конвертации видеофайлов из формата MP4 в формат BIK с добавлением звуковых дорожек из WAV-файлов для различных версий игры Command & Conquer.
+[🇬🇧 English](Readme.md) | [🇷🇺 Русский](Readme_ru.md)
 
-## Поддерживаемые игры
+![License](https://img.shields.io/badge/license-GPLv3-blue)
+![Platform](https://img.shields.io/badge/platform-Windows_10+-green)
+![Status](https://img.shields.io/badge/status-stable-brightgreen)
 
-- **Red Alert 1 (RA1)** - видео с поддержкой HD и стандартного формата
-- **Red Alert 2 (RA2)** - видео с поддержкой HD и стандартного формата  
-- **Red Alert 2 Yuri's Revenge (RA2YR)** - видео с поддержкой HD и стандартного формата
+[![RAD Tools](https://img.shields.io/badge/RAD_Game_Tools-Bink_1.0-orange)](https://www.radgametools.com/)
+[![FFmpeg](https://img.shields.io/badge/FFmpeg-7.x-purple)](https://ffmpeg.org/)
+[![Batch](https://img.shields.io/badge/Language-Windows_Batch-grey)](#)
 
-## Основные скрипты
+Automated MP4 → BIK conversion pipeline with WAV audio mixing and MIX archive packaging for the Command & Conquer franchise.
 
-### 1. Основная конвертация BIK
+## 🎯 Supported Games
 
-```bash
-Cross_Converted_BIK.bat [-RA1] [-RA2] [-RA2YR]
+| Game | Format |
+|------|--------|
+| **Red Alert 1** 🔴 | HD + Standard |
+| **Red Alert 2** 🟡 | HD + Standard |
+| **RA2: Yuri's Revenge** 🟣 | HD + Standard |
+
+## 📥 Source Files
+
+Download source MP4 videos, BIK files, and WAV audio tracks. **Required** for `Cross_Converted_BIK.bat` to work.
+
+| Game | Link | Contents |
+|------|------|----------|
+| 🔴 Red Alert 1 | [Yandex.Disk](https://disk.yandex.com/d/byR2zVm0uniB0Q) | MP4 + WAV |
+| 🟡 Red Alert 2 | [Yandex.Disk](https://disk.yandex.com/d/Swf4monQvkhA8w) | MP4 + BIK + WAV |
+| 🟣 RA2: Yuri's Revenge | [Yandex.Disk](https://disk.yandex.com/d/8YOQIZcHQ74NMw) | MP4 + BIK + WAV |
+
+## 🛠️ Tools & Technologies
+
+| Tool | Purpose |
+|------|---------|
+| 🎬 `radvideo64.exe` | MP4 → BIK encoding (Bink 1.0) |
+| 🎵 `BinkMix.exe` | WAV → BIK audio mixing |
+| 📦 `ccmix.exe` | MIX archive packing |
+| 🎞️ `ffmpeg.exe` | H.265→H.264, MP3→WAV |
+| 🎮 `binkplay.exe` | BIK preview player |
+| 🔧 `CMDParse.exe` | Universal argument parser |
+
+## 📜 Scripts
+
+### 🔄 Core Conversion
+
+```batch
+Cross_Converted_BIK.bat [flags]
 ```
 
-Если параметры не указаны, обрабатываются все игры.   
-Примеры:
+| Flag | Description |
+|------|-------------|
+| 🎯 `-GAME:RA1` / `-GAME:RA2` / `-GAME:RA2YR` | Filter by game (use multiple for several) |
+| 👥 `-GROUP:name` / `-G:name` | Filter by voice group (use multiple for several) |
+| 📐 `-RES:600p` | Filter by resolution (use multiple for several) |
+| 📐+ `-RES:600p+` | Include noformat |
+| ⏭️ `-INCREMENTAL` | Skip converted files |
+| 🔄 `-RETRY` | Retry failed files |
+| 👁️ `-DRY_RUN` | Preview mode |
 
-- ```Cross_Converted_BIK.bat -RA1``` - обработать только Red Alert 1
-- ```Cross_Converted_BIK.bat -RA2 -RA2YR``` - обработать Red Alert 2 и Yuri's Revenge
+**Examples:**
+```batch
+Cross_Converted_BIK.bat -GAME:RA2
+Cross_Converted_BIK.bat -GAME:RA2 -GAME:RA2YR
+Cross_Converted_BIK.bat -GAME:RA2 -GROUP:Original -GROUP:7wolf
+Cross_Converted_BIK.bat -GAME:RA2 -GROUP:Original -RES:600p -RES:720p
+Cross_Converted_BIK.bat -GAME:RA2 -GROUP:Original -RES:600p+
+Cross_Converted_BIK.bat -GAME:RA2 -GROUP:"City [Dyadyushka Risyotch]"
+Cross_Converted_BIK.bat -GAME:RA2 -GROUP:Original -RES:600p -INCREMENTAL
+Cross_Converted_BIK.bat -GAME:RA2 -GROUP:Original -RES:600p -DRY_RUN
+Cross_Converted_BIK.bat
+```
 
-### 2. Упаковка в MIX-файлы для модов (MO/Vision)
+### 📦 MO Vision MIX Packaging
 
-```bash
+```batch
+Pack_Mixes_MO_Vision.bat [-GROUP:name] [-GAME:name]
+```
+
+| Flag | Description |
+|------|-------------|
+| 👥 `-GROUP:name` | Pack specific voice group |
+| 🎯 `-GAME:name` | Pack specific game |
+
+**Examples:**
+```batch
 Pack_Mixes_MO_Vision.bat
+Pack_Mixes_MO_Vision.bat -GROUP:Original
+Pack_Mixes_MO_Vision.bat -GAME:RA2 -GROUP:7wolf
+Pack_Mixes_MO_Vision.bat -GAME:RA2YR
 ```
 
-Этот скрипт упаковывает сконвертированные BIK-файлы в MIX-архивы для использования в модификациях на движке RA2/RA2YR (в данном случае MO Vision). 
+### 📦 Original Games MIX Packaging
 
-**Особенности:**
-
-- Для RA1: Original группа разделяется между expandmo11-14, остальные группы используют expandmo13-14
-- Для RA2: Все группы упаковываются в expandmo11-12
-- Для RA2YR: Все файлы получают суффикс `_yr` и упаковываются в expandmo13-14
-- Создает структуру в папке `Build\MOV`
-
-### 3. Упаковка в MIX-файлы для оригинальных игр
-
-```bash
-Pack_Mixes_Original.bat <озвучка> <разрешение>
+```batch
+Pack_Mixes_Original.bat [-GROUP:name] [-RES:resolution]
 ```
 
-Этот скрипт создает MIX-файлы для оригинальных игр RA2 и Yuri's Revenge.
+Without parameters — processes **Original** group with **600p** resolution.
 
-**Особенности:**
-
-- Для RA2 создает `movies01.mix` (файлы на "a" + westlogo.bik) и `movies02.mix` (файлы на "s")
-- Для RA2YR создает `movmd03.mix` (все файлы)
-- Автоматически добавляет key.ini файлы из папки `Original_MIX_Key`
-- Создает структуру в папке `Build\OriginalGames`
-- Если имя озвучки содержит пробелы, то его следует заключить в кавычки.
-
-**Примеры использования:**
-
-```bash
-Pack_Mixes_Original.bat Original 1080p
-Pack_Mixes_Original.bat "Russian project" 720p
+**Examples:**
+```batch
+Pack_Mixes_Original.bat
+Pack_Mixes_Original.bat -GROUP:Original -RES:1080p
+Pack_Mixes_Original.bat -GROUP:"Russian project" -RES:720p
+Pack_Mixes_Original.bat -GROUP:7wolf -RES:600pyr
 ```
 
-### 4. Конвертер видео H.265 → H.264
+### 🎞️ H.265 → H.264 Converter
 
-```bash
+```batch
 H265.bat
 ```
 
-Вспомогательный инструмент для конвертации видео из формата H.265 в H.264 без аудио.
+Interactive tool. Prompts for folder path with videos. Converts H.265 to H.264 without audio. Supports MP4, MKV, MOV, AVI, M4V, TS, WEBM, FLV.
 
-**Особенности:**
+### 🎵 MP3 → WAV Converter
 
-- Поддерживает различные видеоформаты: MP4, MKV, MOV, AVI, M4V, TS, WEBM, FLV
-- Использует двухпроходное кодирование для высокого качества
-- Сохраняет результаты в папку `Converted`
-- Поддерживает как абсолютные, так и относительные пути
+```batch
+MP3_to_WAV.bat [-OVERWRITE] [-DRY_RUN]
+```
 
-## Подготовка материалов
+| Flag | Description |
+|------|-------------|
+| 🔄 `-OVERWRITE` | Overwrite existing WAV files |
+| 👁️ `-DRY_RUN` | Preview mode |
 
-Для проверки работы использовал следующие материалы:
+**Examples:**
+```batch
+MP3_to_WAV.bat
+MP3_to_WAV.bat -DRY_RUN
+MP3_to_WAV.bat -OVERWRITE
+```
 
-### Red Alert 1
-- [WAV_Sound_RA1](https://disk.yandex.ru/d/fypGSbfMwDs8uQ)
-- [Clean_MP4_RA1](https://disk.yandex.ru/d/jTlcTHwJjgLhWg)
+### 👁️ BIK Preview
 
-### Red Alert 2 / Yuri's Revenge
-- [WAV_Sound_RA2_RA2YR](https://disk.yandex.ru/d/v5S_kkOyPR6YMA) + [WAV_Sound_RA2_RA2YR_Plus](https://disk.yandex.ru/d/YhJb8tHVh_IBbQ)
-- [Clean_MP4_RA2_RA2YR](https://disk.yandex.ru/d/2c-p-ID_-__Jog)
-- [Clean_BIK_RA2_RA2YR](https://disk.yandex.ru/d/xmjS5EqcHf8PRQ)
+```batch
+Preview.bat
+```
 
-## Поддерживаемые озвучки
+Interactive preview tool. Step-by-step menu:
+1. Select game (RA1/RA2/RA2YR)
+2. Select MP4 file
+3. Select resolution
+4. Select voice group (or no audio)
+5. Preview in `binkplay.exe`
 
-### Red Alert 1
-- Original (English)
-- R.G.MVO
-- VHS
+### 🔍 MIX Diff
 
-### Red Alert 2
-- Original (English)
-- 7wolf
-- City [Dyadyushka Risyotch]
-- Fargus
-- Russian project
-- Triada
-- XXI Vek [8 Bit]
+```batch
+MIX_Diff.bat
+```
 
-### Red Alert 2 Yuri's Revenge
-- Original (English)
-- 7wolf
-- City [Dyadyushka Risyotch]
-- Fargus
-- Triada
+Interactive comparison tool. Three modes:
+1. Compare two BIK directories
+2. Compare two MIX files
+3. Compare MIX file with directory
 
-**Дополнительные озвучки** (при скачивании WAV_Sound_RA2_RA2YR_Plus):
-- RA2: French, German, Korean, Ukrainian
-- RA2YR: French, German, Korean, Ukrainian
+### 📐 Resolution Converter
 
-## Важные замечания
+```batch
+Resolution_Convert.bat
+```
 
-### Производительность
-⚠️ **Внимание!** Кодирование происходит за счет CPU и очень сильно его нагружает. На весь процесс из 3 игр уходит около 2 дней (при AMD Ryzen 9 8945HS).
+Interactive tool. Three modes:
+1. Convert single BIK to new resolution
+2. Batch convert all BIK in folder
+3. Convert MP4 to BIK with custom resolution
 
-### Форматы видео
-- Катсцены RA1 будут преобразованы в формат Bink v1 для использования в модах на движке RA2/RA2YR
-- Все видео конвертируются в нескольких разрешениях для поддержки разных конфигураций
+### ✅ Pipeline Test
 
-## Структура каталогов
+```batch
+test.bat
+```
 
-Для корректной работы скриптов необходимо иметь следующую структуру каталогов:
+Runs 6 checks:
+1. Tools (radvideo64, BinkMix, ccmix)
+2. Folders (Clean_MP4, WAV_Sound)
+3. MP4 → BIK conversion
+4. BinkMix.exe existence
+5. Nolang config validation
+6. DRY_RUN mode
+
+### 🔒 MIX Validation
+
+```batch
+Validate_MIX.bat
+```
+
+Interactive validation. Select source:
+1. `Build\MOV` (MO Vision archives)
+2. `Build\OriginalGames` (original game archives)
+3. Custom path
+
+Checks each MIX file: size > 0, minimum header size, ccmix --verify.
+
+## 🔧 CMDParse — Argument Parser
+
+`CMDParse.exe` is a universal argument parser used by all batch scripts.
+
+```batch
+CMDParse.exe [flags]
+```
+
+| Mode | Description |
+|------|-------------|
+| `--mode:cross` | Cross_Converted_BIK (default) |
+| `--mode:pack_mo` | Pack_Mixes_MO_Vision |
+| `--mode:pack_original` | Pack_Mixes_Original |
+| `--mode:mp3_to_wav` | MP3_to_WAV |
+| `--mode:h265` | H265.bat |
+| `--mode:preview` | Preview.bat |
+| `--mode:validate` | Validate_MIX.bat |
+| `--mode:resolution` | Resolution_Convert.bat |
+| `--mode:mix_diff` | MIX_Diff.bat |
+
+| Flag | Description |
+|------|-------------|
+| 🎯 `-RA1`, `-RA2`, `-RA2YR` | Game flags |
+| 🔗 `-GAME:RA2,RA2YR` | Comma-separated game list |
+| 👥 `-GROUP:Original,7wolf` | Comma-separated voice groups |
+| 📐 `-RES:600p,720p+` | Comma-separated resolutions |
+| 🔄 `-DRY_RUN`, `-INCREMENTAL`, `-RETRY`, `-OVERWRITE` | Mode flags |
+| 📂 `-SOURCE:path`, `-OUTPUT:path` | Path parameters |
+| ❓ `--help` | Show help |
+
+| Utility | Description |
+|---------|-------------|
+| `--list-groups` | List available voice groups |
+| `--list-files` | List available MP4/BIK files |
+| `--verify` | Verify all BIKs exist for resolutions |
+| `--cleanup` | Remove empty BIK files |
+| `--stats` | Show file statistics |
+
+Defaults are loaded from `cmdparse.ini`.
+
+## ⚙️ Configuration
+
+### 📄 config.ini
+
+All scripts use `config_loader.bat` with `config.ini`:
+
+```ini
+[paths]
+radtools_new=third-party\Radtools_New\radvideo64.exe
+radtools_old=third-party\Radtools_Old\BinkMix.exe
+ccmix=third-party\CCMIX\ccmix.exe
+ffmpeg=third-party\ffmpeg.exe
+
+[folders]
+mp4_source=Clean_MP4
+sound_source=WAV_Sound
+clean_bik=Clean_BIK
+final_ra1=Final_BIK_RA1
+final_ra2=Final_BIK_RA2
+final_ra2yr=Final_BIK_RA2YR
+build_root=Build
+
+[config]
+log_file=conversion_log.txt
+failed_file=failed.txt
+
+[nolang]
+files_hd=ALLIESMAP_01 ALLIESMAP_02 ...
+files_noformat=AFTRMATH AIRFIELD ...
+```
+
+### 📄 cmdparse.ini
+
+CMDParse defaults (CLI arguments override these):
+
+```ini
+[defaults]
+mode=cross
+games=RA1,RA2,RA2YR
+groups=
+resolutions=
+dry_run=false
+incremental=false
+retry=false
+overwrite=false
+```
+
+## 📐 Supported Resolutions
+
+| Resolution | RA2/RA2YR | RA1 | Bitrate |
+|------------|-----------|-----|---------|
+| `600p` | 800x600 | 1024x600 | 400 kbps |
+| `720p` | 960x720 | 1280x720 | 600 kbps |
+| `768p` | 1024x768 | 1366x768 | 700 kbps |
+| `900p` | 1200x900 | 1600x900 | 900 kbps |
+| `1080p` | 1400x1080 | 1920x1080 | 1150 kbps |
+| `600pyr` | 800x600 | — | 1100 kbps RA2YR only |
+| `noformat` | — | 1024x564 | 400 kbps RA1 only |
+
+## 👥 Supported Voice Groups
+
+### 🔴 Red Alert 1
+`Original` · `R.G.MVO` · `VHS`
+
+### 🟡 Red Alert 2
+`Original` · `7wolf` · `City [Dyadyushka Risyotch]` · `Fargus` · `Russian project` · `Triada` · `XXI Vek [8 Bit]`
+`French` · `German` · `Korean` · `Ukrainian` · `Thai` · `Turkish`
+
+### 🟣 RA2: Yuri's Revenge
+`Original` · `7wolf` · `City [Dyadyushka Risyotch]` · `Fargus` · `Triada`
+`French` · `German` · `Korean` · `Ukrainian` · `Thai` · `Turkish`
+
+## ⚠️ Important Notes
+
+- **🖥️ Platform**: Windows 10+ (cmd.exe only)
+- **⏱️ Encoding**: ~3-10 min per MP4 file
+- **💾 MIX limit**: Max 2GB per MIX file (x86)
+- **👻 Hidden windows**: radvideo64 and BinkMix run hidden (no popup windows)
+- **🔄 Incremental**: `-INCREMENTAL` skips converted files
+- **🔁 Retry**: Failed files → `failed.txt`, use `-RETRY`
+- **👁️ Dry run**: `-DRY_RUN` previews without converting
+- **📝 Logging**: Timestamps `[HH:MM:SS]` in log, ETA in console
+
+## 📁 Directory Structure
 
 ```
 .
-├── Cross_Converted_BIK.bat 		# Основной скрипт конвертации
-├── Pack_Mixes_MO_Vision.bat 		# Упаковка для модов
-├── Pack_Mixes_Original.bat 		# Упаковка для оригинальных игр
-├── H265.bat 						# Конвертер H.265 → H.264
-├── Readme.md 						# Эта документация
+├── Cross_Converted_BIK.bat
+├── Pack_Mixes_MO_Vision.bat
+├── Pack_Mixes_Original.bat
+├── H265.bat
+├── MP3_to_WAV.bat
+├── Preview.bat
+├── MIX_Diff.bat
+├── Resolution_Convert.bat
+├── test.bat
+├── Validate_MIX.bat
+├── config.ini
+├── config_loader.bat
+├── cmdparse.ini
+├── Readme.md
 │
-├── Radtools_New/ 					# Новые RAD инструменты
-│ 	└── radvideo64.exe
-├── Radtools_Old/ 					# Старые RAD инструменты
-│ 	└── BinkMix.exe
-├── CCMIX/ 							# Инструмент упаковки MIX
-│ 	└── ccmix.exe
+├── third-party/
+│   ├── CMDParse/       CMDParse.exe + sources
+│   ├── CCMIX/          ccmix.exe
+│   ├── Radtools_New/   radvideo64.exe, binkplay.exe
+│   ├── Radtools_Old/   BinkMix.exe
+│   ├── Original_MIX_Key/  MIX encryption keys
+│   └── ffmpeg.exe
 │
-├── Clean_MP4/ 						# Исходные видеофайлы
-│ 	├── RA1/
-│ 	│ 	├── HD/
-│ 	│ 	│ 	├── noWAV/ 				# Видео без звука
-│ 	│ 	│ 	└── WAV/ 				# Видео со звуком
-│ 	│ 	└── noHD/ 					# Стандартное качество
-│ 	├── RA2/
-│ 	└── RA2YR/
+├── Clean_MP4/          Source MP4 videos
+├── WAV_Sound/          WAV audio tracks
+├── Clean_BIK/          Original BIK files
 │
-├── WAV_Sound/ 						# Звуковые дорожки
-│ 	├── RA1/
-│ 	│ 	└── <GroupName>/ 			# Группы озвучек
-│ 	├── RA2/
-│ 	│ 	└── <GroupName>/
-│ 	└── RA2YR/
-│ 		└── <GroupName>/
+├── Final_BIK_RA1/      RA1 output
+├── Final_BIK_RA2/      RA2 output
+├── Final_BIK_RA2YR/    RA2YR output
 │
-├── Clean_BIK/ 						# Оригинальные BIK-файлы
-│ 	├── RA2/
-│ 	└── RA2YR/
+├── Build/
+│   ├── MOV/            MO Vision archives
+│   └── OriginalGames/  Original game archives
 │
-├── Final_BIK_RA1/ 					# Результаты конвертации
-├── Final_BIK_RA2/
-├── Final_BIK_RA2YR/
-│
-├── Build/ 							# Результаты упаковки
-│ 	├── MOV/ 						# Для мода MO Vision
-│ 	│ 	├── RA1_Remake/
-│ 	│ 	└── RA2_and_RA2YR_Remake/
-│ 	└── OriginalGames/ 				# Для оригинальных игр
-│ 		├── RA2_Original/
-│ 		└── YR_Original/
-│
-├── Original_MIX_Key/ 				# Key.ini файлы для оригинальных игр
-│ 	├── movies01/
-│ 	├── movies02/
-│ 	└── movmd03/
-│
-└── Converted/ 						# Результаты H265.bat
+└── Converted/          H265.bat output
 ```
 
+## 🙏 Credits
 
-## Поддерживаемые разрешения
-
-Для каждой игры создаются видео в следующих разрешениях:
-
-- **600p** (800×600 для RA2/RA2YR, 1024×600 для RA1)
-- **720p** (960×720 для RA2/RA2YR, 1280×720 для RA1)
-- **768p** (1024×768 для RA2/RA2YR, 1366×768 для RA1)
-- **900p** (1200×900 для RA2/RA2YR, 1600×900 для RA1)
-- **1080p** (1400×1080 для RA2/RA2YR, 1920×1080 для RA1)
-- **noformat** (140×110 для RA2/RA2YR, 1024×564 для RA1)
-
-## Принцип работы
-
-### 1. Конвертация (Cross_Converted_BIK.bat)
-1. Проверка зависимостей: Проверяет наличие инструментов и исходных каталогов
-2. Создание структуры папок: Автоматически создает папки для результатов
-3. Обработка видео: Конвертирует MP4 в BIK с разными разрешениями и битрейтами
-4. Добавление звука: Смешивает видео с соответствующими WAV-дорожками
-5. Логирование: Весь процесс записывается в файл `conversion_log.txt`
-
-### 2. Упаковка для модов (Pack_Mixes_MO_Vision.bat)
-1. Обработка RA1: Разделение файлов Original группы и упаковка в разные MIX
-2. Обработка RA2: Упаковка всех файлов в expandmo11-12
-3. Обработка RA2YR: Добавление суффикса `_yr` и упаковка в expandmo13-14
-4. Создание структуры для модификаций
-
-### 3. Упаковка для оригинальных игр (Pack_Mixes_Original.bat)
-1. Создание movies01.mix: Файлы на "a" + westlogo.bik + key.ini
-2. Создание movies02.mix: Файлы на "s" + key.ini
-3. Создание movmd03.mix: Все файлы RA2YR + key.ini
-4. Организация по озвучкам и разрешениям
-
-### 4. Конвертация H.265 (H265.bat)
-1. Запрос пути к исходным видео
-2. Двухпроходное кодирование в H.264
-3. Сохранение результатов без аудио
-4. Автоматическая очистка временных файлов
-
-## Особенности обработки для разных игр
-
-### Red Alert 1 (RA1)
-- HD/noWAV - видео высокого качества без звука
-- HD/WAV - видео высокого качества со звуком
-- noHD - видео стандартного качества со звуком
-- Разделение файлов в папки nolang для совместимости
-
-### Red Alert 2 и Yuri's Revenge
-- Обработка MP4-файлов с созданием HD-версий
-- Обработка оригинальных BIK-файлов (если доступны)
-- Поддержка различных языковых групп
-- Автоматическое переименование файлов RA2YR
-
-## Благодарности
-
-* создателям [RADTOOLS](https://www.radgametools.com/)
-* создателям [ffmpeg](https://rwijnsma.home.xs4all.nl/files/ffmpeg/) (универсальной модификации под любые windows)
-* [DarK600](https://forums.nexusmods.com/profile/41423505-dark600dionis/) (за предоставленные Fullscreen cutscenes - AI-Upscaled - boosted to 30 FPS от RA2YR и RA2)
-* Сообществу моддеров Command & Conquer за тестирование и обратную связь
+- [RAD Game Tools](https://www.radgametools.com/) — Bink encoder & mixer
+- [FFmpeg](https://oss.netfarm.it/mplayer/) — Video/audio processing
+- [DarK600](https://forums.nexusmods.com/profile/41423505-dark600dionis/) — AI-Upscaled cutscenes
+- C&C modding community

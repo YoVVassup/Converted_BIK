@@ -11,6 +11,10 @@ Final_BIK_RA1/
 Final_BIK_RA2/
 Final_BIK_RA2YR/
 Build/
+Converted/
+TEST/
 
-## Log file
+## Log and temp files
 conversion_log.txt
+failed.txt
+test_output.txt
