@@ -108,6 +108,10 @@ static void OutputPackMO(const BIKArgParser& parser)
 
     if (!games.empty())
         std::cout << "FILTER_GAME=" << JoinSemicolon(games) << std::endl;
+
+    std::cout << "DRY_RUN=" << (parser.HasFlag("DRY_RUN") ? "1" : "0") << std::endl;
+    std::cout << "INCREMENTAL=" << (parser.HasFlag("INCREMENTAL") ? "1" : "0") << std::endl;
+    std::cout << "RETRY=" << (parser.HasFlag("RETRY") ? "1" : "0") << std::endl;
 }
 
 static void OutputPackOriginal(const BIKArgParser& parser)
@@ -120,6 +124,10 @@ static void OutputPackOriginal(const BIKArgParser& parser)
 
     if (!resolutions.empty())
         std::cout << "RESOLUTION=" << resolutions[0] << std::endl;
+
+    std::cout << "DRY_RUN=" << (parser.HasFlag("DRY_RUN") ? "1" : "0") << std::endl;
+    std::cout << "INCREMENTAL=" << (parser.HasFlag("INCREMENTAL") ? "1" : "0") << std::endl;
+    std::cout << "RETRY=" << (parser.HasFlag("RETRY") ? "1" : "0") << std::endl;
 }
 
 static void OutputMp3ToWav(const BIKArgParser& parser)
@@ -165,6 +173,7 @@ static void OutputPreview(const BIKArgParser& parser)
 static void OutputValidate(const BIKArgParser& parser)
 {
     std::string path = parser.Get("path");
+    if (path.empty()) path = parser.Get("scan_dir");
     if (!path.empty())
         std::cout << "SCAN_DIR=" << path << std::endl;
 }
@@ -173,11 +182,13 @@ static void OutputResolution(const BIKArgParser& parser)
 {
     std::string input = parser.Get("input");
     std::string output = parser.Get("output");
+    std::string bitrate = parser.Get("bitrate");
     std::vector<std::string> resolutions = parser.GetResolutionFilter();
 
     if (!input.empty()) std::cout << "INPUT=" << input << std::endl;
     if (!output.empty()) std::cout << "OUTPUT=" << output << std::endl;
     if (!resolutions.empty()) std::cout << "RESOLUTION=" << resolutions[0] << std::endl;
+    if (!bitrate.empty()) std::cout << "BITRATE=" << bitrate << std::endl;
     std::cout << "DRY_RUN=" << (parser.HasFlag("DRY_RUN") ? "1" : "0") << std::endl;
 }
 

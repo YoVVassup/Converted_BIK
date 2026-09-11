@@ -79,9 +79,15 @@ for /r "%SOUND_SOURCE%" %%F in (*.mp3) do (
     set "should_convert=1"
     
     if exist "!wav_file!" if !OVERWRITE! equ 0 (
-        echo [!IDX!/!TOTAL!] Skip (WAV exists): !rel_path!
-        set /a SKIPPED+=1
-        set "should_convert=0"
+        set "_wav_size=0"
+        for %%I in ("!wav_file!") do set "_wav_size=%%~zI"
+        if !_wav_size! gtr 0 (
+            echo [!IDX!/!TOTAL!] Skip (WAV exists): !rel_path!
+            set /a SKIPPED+=1
+            set "should_convert=0"
+        ) else (
+            echo [!IDX!/!TOTAL!] Re-converting (empty WAV): !rel_path!
+        )
     )
     
     if !should_convert! equ 1 (

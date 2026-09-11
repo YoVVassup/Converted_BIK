@@ -115,16 +115,24 @@ for %%i in (*.mp4 *.mkv *.mov *.avi *.m4v *.ts *.webm *.flv) do (
     
     if !DRY_RUN! equ 0 (
         "!FFMPEG_PATH!" -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 1 -passlogfile "!logname!" -f mp4 NUL 2>nul
-        
-        "!FFMPEG_PATH!" -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 2 -passlogfile "!logname!" -movflags +faststart "!output_dir!\%%~ni.mp4" 2>nul
+        if !errorlevel! neq 0 (
+            echo    [ERROR] Pass 1 failed: %%~nxi
+        ) else (
+            "!FFMPEG_PATH!" -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 2 -passlogfile "!logname!" -movflags +faststart "!output_dir!\%%~ni.mp4" 2>nul
+            if !errorlevel! neq 0 (
+                echo    [ERROR] Pass 2 failed: %%~nxi
+            ) else (
+                echo Done: %%~ni.mp4
+            )
+        )
         
         if exist "!logname!-0.log" del "!logname!-0.log"
         if exist "!logname!-0.log.mbtree" del "!logname!-0.log.mbtree"
     ) else (
         echo    [DRY_RUN] Would convert: %%~nxi
+        echo Done: %%~ni.mp4
     )
     
-    echo Done: %%~ni.mp4
     echo.
 )
 

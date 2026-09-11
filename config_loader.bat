@@ -14,6 +14,8 @@ set "OLD_MIX=third-party\Radtools_Old\BinkMix.exe"
 set "CCMIX_TOOL=third-party\CCMIX\ccmix.exe"
 set "FFMPEG_PATH=third-party\ffmpeg.exe"
 set "BINK_PLAY=third-party\Radtools_New\binkplay.exe"
+set "RUN_HIDDEN=third-party\run_hidden.vbs"
+set "HIDE_WINDOW=1"
 set "MP4_SOURCE=Clean_MP4"
 set "SOUND_SOURCE=WAV_Sound"
 set "CLEAN_BIK=Clean_BIK"
@@ -23,11 +25,11 @@ set "FINAL_RA2YR=Final_BIK_RA2YR"
 set "BUILD_ROOT=Build"
 set "NOLANG_FILES_HD="
 set "NOLANG_FILES_NOFORMAT="
-set "LOGFILE=conversion_log.txt"
-set "FAILED_FILE=failed.txt"
 
 if not exist "%CONFIG_FILE%" (
     echo [CONFIG] config.ini not found, using defaults >&2
+    if not defined LOGFILE set "LOGFILE=conversion_log.txt"
+    if not defined FAILED_FILE set "FAILED_FILE=failed.txt"
     goto :eof
 )
 
@@ -49,9 +51,38 @@ for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
         if /i "!key!"=="build_root" set "BUILD_ROOT=!val!"
         if /i "!key!"=="files_hd" set "NOLANG_FILES_HD=!val!"
         if /i "!key!"=="files_noformat" set "NOLANG_FILES_NOFORMAT=!val!"
-        if /i "!key!"=="log_file" set "LOGFILE=!val!"
-        if /i "!key!"=="failed_file" set "FAILED_FILE=!val!"
+        if /i "!key!"=="hide_window" (
+            if /i "!val!"=="true" (set "HIDE_WINDOW=1") else if /i "!val!"=="false" (set "HIDE_WINDOW=0")
+        )
+        if /i "!key!"=="log_file" if not defined _cfg_logfile set "_cfg_logfile=!val!"
+        if /i "!key!"=="failed_file" if not defined _cfg_failedfile set "_cfg_failedfile=!val!"
     )
 )
 
+if not defined LOGFILE if defined _cfg_logfile set "LOGFILE=!_cfg_logfile!"
+if not defined FAILED_FILE if defined _cfg_failedfile set "FAILED_FILE=!_cfg_failedfile!"
+if not defined LOGFILE set "LOGFILE=conversion_log.txt"
+if not defined FAILED_FILE set "FAILED_FILE=failed.txt"
+
+if "!HIDE_WINDOW!"=="1" if not exist "%RUN_HIDDEN%" (
+    echo [CONFIG] WARNING: run_hidden.vbs not found: %RUN_HIDDEN% >&2
+    echo [CONFIG] Hidden window mode disabled, using visible mode >&2
+    set "HIDE_WINDOW=0"
+)
+
 echo [CONFIG] Configuration loaded from config.ini >&2
+
+rem ===================================================
+rem Log rotation: if LOGFILE > 1MB, rename with timestamp
+rem ===================================================
+if exist "%LOGFILE%" (
+    for %%I in ("%LOGFILE%") do if %%~zI gtr 1048576 (
+        set "STAMP="
+        for /f "tokens=2 delims==" %%D in ('wmic os get localdatetime /value 2^>nul') do set "DT=%%D"
+        if defined DT set "STAMP=!DT:~0,4!!DT:~4,2!!DT:~6,2!_!DT:~8,2!!DT:~10,2!!DT:~12,2!"
+        if not defined STAMP set "STAMP=!RANDOM!!RANDOM!"
+        set "ROTATED=%LOGFILE%_!STAMP!.log"
+        move "%LOGFILE%" "!ROTATED!" >nul 2>&1
+        echo [CONFIG] Log rotated: !ROTATED! >&2
+    )
+)

@@ -5,6 +5,7 @@ setlocal enabledelayedexpansion
 call "%~dp0config_loader.bat"
 
 set "SCAN_DIR="
+set "INTERACTIVE=0"
 
 if not "%~1"=="" (
     "%~dp0third-party\CMDParse\CMDParse.exe" --mode:validate %* > "%TEMP%\validate_args.txt"
@@ -36,11 +37,17 @@ if not defined SCAN_DIR (
         set /p "SCAN_DIR= "
         set "SCAN_DIR=!SCAN_DIR:"=!"
     )
+    if not defined SCAN_DIR (
+        echo ERROR: Invalid selection
+        endlocal
+        exit /b 1
+    )
+    set "INTERACTIVE=1"
 )
 
 if not exist "!SCAN_DIR!\" (
     echo ERROR: Folder not found
-    pause
+    if "!INTERACTIVE!"=="1" pause
     endlocal
     exit /b 1
 )

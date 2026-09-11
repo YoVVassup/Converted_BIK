@@ -124,16 +124,44 @@ goto :eof
 :run_binkc
 set "_ts=%time:~0,8%"
 set "_ts=!_ts: =0!"
-echo [!_ts!] CMD: "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >> "%LOGFILE%"
-powershell -NoProfile -Command "Start-Process -FilePath '%NEW_RAD%' -ArgumentList 'Binkc \"%~1\" \"%~2\" /N-1 /(%~3 /)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /#' -WindowStyle Hidden -Wait"
-goto :eof
+set "_rc=1"
+for /l %%A in (1,1,3) do (
+    if !_rc! neq 0 (
+        echo [!_ts!] CMD: "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >> "%LOGFILE%"
+        if "!HIDE_WINDOW!"=="1" (
+            cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >nul 2>&1
+        ) else (
+            "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >nul 2>&1
+        )
+        set "_rc=!errorlevel!"
+        if !_rc! neq 0 if %%A lss 3 (
+            echo    Retry %%A/3...
+            timeout /t 2 /nobreak >nul
+        )
+    )
+)
+exit /b !_rc!
 
 :run_binkmix
 set "_ts=%time:~0,8%"
 set "_ts=!_ts: =0!"
-echo [!_ts!] CMD: "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >> "%LOGFILE%"
-powershell -NoProfile -Command "Start-Process -FilePath '%OLD_MIX%' -ArgumentList '\"%~1\" \"%~2\" \"%~3\" /L0 /O /#' -WindowStyle Hidden -Wait"
-goto :eof
+set "_rc=1"
+for /l %%A in (1,1,3) do (
+    if !_rc! neq 0 (
+        echo [!_ts!] CMD: "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >> "%LOGFILE%"
+        if "!HIDE_WINDOW!"=="1" (
+            cscript //nologo "%RUN_HIDDEN%" "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >nul 2>&1
+        ) else (
+            "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >nul 2>&1
+        )
+        set "_rc=!errorlevel!"
+        if !_rc! neq 0 if %%A lss 3 (
+            echo    Retry %%A/3...
+            timeout /t 2 /nobreak >nul
+        )
+    )
+)
+exit /b !_rc!
 
 :set_resolution
 set "_res=%~1"
@@ -164,13 +192,15 @@ goto :eof
 
 :ensure_group_folder
 set "_grp=%~1"
-if not exist "!_grp!\" mkdir "!_grp!"
-if not exist "!_grp!\noformat\" mkdir "!_grp!\noformat!"
+if not exist "!_grp!\" mkdir "!_grp!" 2>nul
+if not exist "!_grp!\" (echo ERROR: Cannot create folder: !_grp! & exit /b 1)
+if not exist "!_grp!\noformat\" mkdir "!_grp!\noformat!" 2>nul
 goto :eof
 
 :ensure_folder
 set "_dir=%~1"
-if not exist "!_dir!\" mkdir "!_dir!"
+if not exist "!_dir!\" mkdir "!_dir!" 2>nul
+if not exist "!_dir!\" (echo ERROR: Cannot create folder: !_dir! & exit /b 1)
 goto :eof
 
 :process_game
@@ -199,7 +229,7 @@ for %%F in ("!_mp4_dir!\*.mp4") do (
     
     if !RETRY! equ 1 (
         set "in_failed=0"
-        if exist "%FAILED_FILE%" findstr /i /c:"!filename!" "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
+        if exist "%FAILED_FILE%" findstr /i /r /c:"^!filename! " "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
         if !in_failed! equ 0 (set /a STAT_SKIPPED+=1 & set "should_process=0")
     )
     
@@ -236,7 +266,8 @@ for %%F in ("!_mp4_dir!\*.mp4") do (
                             set "res=%%R"
                             set "skip_res=1"
                             if defined RESOLUTION_FILTER (
-                                if "!RESOLUTION_FILTER!"=="!res!" set "skip_res=0"
+                                echo ";!RESOLUTION_FILTER!;" | findstr /i /c:";!res!;" >nul
+                                if !errorlevel! equ 0 set "skip_res=0"
                             ) else (set "skip_res=0")
                             if !skip_res! equ 0 (
                                 set "res_folder=!_final_dir!\!group!\!res!"
@@ -309,7 +340,7 @@ for %%F in ("%MP4_SOURCE%\RA1\HD\noWAV\*.mp4") do (
     set "should_process=1"
     if !RETRY! equ 1 (
         set "in_failed=0"
-        if exist "%FAILED_FILE%" findstr /i /c:"!filename!" "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
+        if exist "%FAILED_FILE%" findstr /i /r /c:"^!filename! " "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
         if !in_failed! equ 0 (set /a STAT_SKIPPED+=1 & set "should_process=0")
     )
     if !should_process! equ 1 (
@@ -320,7 +351,8 @@ for %%F in ("%MP4_SOURCE%\RA1\HD\noWAV\*.mp4") do (
                 set "res=%%R"
                 set "skip_res=1"
                 if defined RESOLUTION_FILTER (
-                    if "!RESOLUTION_FILTER!"=="!res!" set "skip_res=0"
+                    echo ";!RESOLUTION_FILTER!;" | findstr /i /c:";!res!;" >nul
+                    if !errorlevel! equ 0 set "skip_res=0"
                 ) else (set "skip_res=0")
                 if !skip_res! equ 0 (
                     set "res_folder=%FINAL_RA1%\Original\!res!"
@@ -374,7 +406,7 @@ for %%F in ("%MP4_SOURCE%\RA1\HD\WAV\*.mp4") do (
     set "should_process=1"
     if !RETRY! equ 1 (
         set "in_failed=0"
-        if exist "%FAILED_FILE%" findstr /i /c:"!filename!" "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
+        if exist "%FAILED_FILE%" findstr /i /r /c:"^!filename! " "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
         if !in_failed! equ 0 (set /a STAT_SKIPPED+=1 & set "should_process=0")
     )
     if !should_process! equ 1 (
@@ -398,7 +430,8 @@ for %%F in ("%MP4_SOURCE%\RA1\HD\WAV\*.mp4") do (
                             set "res=%%R"
                             set "skip_res=1"
                             if defined RESOLUTION_FILTER (
-                                if "!RESOLUTION_FILTER!"=="!res!" set "skip_res=0"
+                                echo ";!RESOLUTION_FILTER!;" | findstr /i /c:";!res!;" >nul
+                                if !errorlevel! equ 0 set "skip_res=0"
                             ) else (set "skip_res=0")
                             if !skip_res! equ 0 (
                                 set "res_folder=%FINAL_RA1%\!group!\!res!"
@@ -444,7 +477,6 @@ for %%F in ("%MP4_SOURCE%\RA1\HD\WAV\*.mp4") do (
                     ) else (
                         echo [%time%] DRY_RUN RA1 !filename! group=!group! >> "%LOGFILE%"
                     )
-                    )
                 )
             )
         )
@@ -452,9 +484,8 @@ for %%F in ("%MP4_SOURCE%\RA1\HD\WAV\*.mp4") do (
     )
 )
 
-set "skip_res_noformat=1"
-if !INCLUDE_NOFORMAT! equ 1 (set "skip_res_noformat=0")
-if !skip_res_noformat! equ 1 if defined RESOLUTION_FILTER (if "!RESOLUTION_FILTER!"=="noformat" set "skip_res_noformat=0")
+set "skip_res_noformat=0"
+if !INCLUDE_NOFORMAT! equ 0 if defined RESOLUTION_FILTER set "skip_res_noformat=1"
 
 if !skip_res_noformat! equ 0 (
     set "_file_idx=0"
@@ -468,7 +499,7 @@ if !skip_res_noformat! equ 0 (
         set "should_process=1"
         if !RETRY! equ 1 (
             set "in_failed=0"
-            if exist "%FAILED_FILE%" findstr /i /c:"!filename!" "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
+            if exist "%FAILED_FILE%" findstr /i /r /c:"^!filename! " "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
             if !in_failed! equ 0 (set /a STAT_SKIPPED+=1 & set "should_process=0")
         )
         if !should_process! equ 1 (
@@ -545,9 +576,12 @@ goto :eof
 
 :process_clean_bik
 set "_game=%~1"
-set "skip_res_noformat=1"
-if !INCLUDE_NOFORMAT! equ 1 (set "skip_res_noformat=0")
-if !skip_res_noformat! equ 1 if defined RESOLUTION_FILTER (if "!RESOLUTION_FILTER!"=="noformat" set "skip_res_noformat=0")
+set "skip_res_noformat=0"
+if defined RESOLUTION_FILTER (
+    set "_nf_found=0"
+    for %%R in (!RESOLUTION_FILTER!) do (if /i "%%R"=="noformat" set "_nf_found=1")
+    if !_nf_found! equ 0 set "skip_res_noformat=1"
+)
 
 if !skip_res_noformat! equ 0 if exist "%CLEAN_BIK%\!_game!\" (
     echo.
@@ -564,19 +598,19 @@ if !skip_res_noformat! equ 0 if exist "%CLEAN_BIK%\!_game!\" (
         set "should_process=1"
         if !RETRY! equ 1 (
             set "in_failed=0"
-            if exist "%FAILED_FILE%" findstr /i /c:"!filename!" "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
+            if exist "%FAILED_FILE%" findstr /i /r /c:"^!filename! " "%FAILED_FILE%" >nul 2>nul && set "in_failed=1"
             if !in_failed! equ 0 (set /a STAT_SKIPPED+=1 & set "should_process=0")
         )
         if !should_process! equ 1 (
             echo [!_file_idx!/!_file_total!] Clean_BIK: !filename!.bik
             for /d %%H in ("%SOUND_SOURCE%\!_game!\*") do (
                 set "group=%%~nxH"
-            set "skip_group=0"
-            if defined GROUP_FILTER (
-                echo ";!GROUP_FILTER!;" | findstr /i /c:";!group!;" >nul
-                if errorlevel 1 set "skip_group=1"
-            )
-                        if !skip_group! equ 0 (
+                set "skip_group=0"
+                if defined GROUP_FILTER (
+                    echo ";!GROUP_FILTER!;" | findstr /i /c:";!group!;" >nul
+                    if errorlevel 1 set "skip_group=1"
+                )
+                if !skip_group! equ 0 (
                     if exist "%%H\!filename!.wav" (
                         set "processed=1"
                         echo [%time%] Found group !group! for !filename!.wav >> "%LOGFILE%"

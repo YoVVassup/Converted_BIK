@@ -18,6 +18,37 @@ if not "%~1"=="" (
 set "DIFF_TOOL=%TEMP%\mixdiff"
 set "DIFF_LOG=%TEMP%\mixdiff_result.txt"
 
+if defined PATH1 if defined PATH2 (
+    if not exist "!PATH1!" (echo ERROR: Not found: !PATH1! & endlocal & exit /b 1)
+    if not exist "!PATH2!" (echo ERROR: Not found: !PATH2! & endlocal & exit /b 1)
+    if exist "!PATH1!\" (
+        if exist "!PATH2!\" (
+            echo Comparing directories:
+            echo   A: !PATH1!
+            echo   B: !PATH2!
+            call :compare_dirs "!PATH1!" "!PATH2!"
+        ) else (echo ERROR: Both paths must be directories or both must be files & endlocal & exit /b 1)
+    ) else (
+        if exist "!PATH2!\" (echo ERROR: Both paths must be directories or both must be files & endlocal & exit /b 1) else (
+            set "TEMP1=%DIFF_TOOL%\mix1"
+            set "TEMP2=%DIFF_TOOL%\mix2"
+            if exist "!TEMP1!" rmdir /s /q "!TEMP1!"
+            if exist "!TEMP2!" rmdir /s /q "!TEMP2!"
+            mkdir "!TEMP1!"
+            mkdir "!TEMP2!"
+            "%CCMIX_TOOL%" --extract --lmd --game=ra2 --mix="!PATH1!" --dir="!TEMP1!" >nul 2>nul
+            "%CCMIX_TOOL%" --extract --lmd --game=ra2 --mix="!PATH2!" --dir="!TEMP2!" >nul 2>nul
+            echo Comparing MIX files:
+            echo   A: !PATH1!
+            echo   B: !PATH2!
+            call :compare_dirs "!TEMP1!" "!TEMP2!"
+        )
+    )
+    if exist "%DIFF_TOOL%" rmdir /s /q "%DIFF_TOOL%" 2>nul
+    endlocal
+    exit /b 0
+)
+
 echo Comparison mode:
 echo   1. Compare two directories with BIK files
 echo   2. Compare two MIX files
@@ -135,10 +166,9 @@ echo =======================================
 >> "!DIFF_LOG!" echo   B: !_d2!
 >> "!DIFF_LOG!" echo.
 
-rem Check files from D1 against D2 (SAME, MODIFIED, ONLY IN A)
-for /r "!_d1!" %%F in (*) do (
+for /f "delims=" %%F in ('dir /b /s /a-d !_d1! 2^>nul') do (
     set "full=%%F"
-    set "rel=!full:!_d1!=!"
+    call set "rel=%%full:!_d1!=%%"
     if "!rel:~0,1!"=="\" set "rel=!rel:~1!"
     if exist "!_d2!\!rel!" (
         set "size_a=0"
@@ -157,10 +187,9 @@ for /r "!_d1!" %%F in (*) do (
     )
 )
 
-rem Check files from D2 that don't exist in D1 (ONLY IN B)
-for /r "!_d2!" %%F in (*) do (
+for /f "delims=" %%F in ('dir /b /s /a-d !_d2! 2^>nul') do (
     set "full=%%F"
-    set "rel=!full:!_d2!=!"
+    call set "rel=%%full:!_d2!=%%"
     if "!rel:~0,1!"=="\" set "rel=!rel:~1!"
     if not exist "!_d1!\!rel!" (
         echo   ONLY IN B: !rel!
@@ -192,6 +221,6 @@ goto :eof
 :done
 if exist "%DIFF_TOOL%" rmdir /s /q "%DIFF_TOOL%" 2>nul
 echo.
-pause
+if not defined PATH1 if not defined PATH2 pause
 endlocal
 exit /b 0

@@ -7,6 +7,9 @@ call "%~dp0config_loader.bat"
 set "INPUT="
 set "OUTPUT="
 set "DRY_RUN=0"
+set "BITRATE="
+set "RESOLUTION="
+set "CLI_MODE=0"
 
 if not "%~1"=="" (
     "%~dp0third-party\CMDParse\CMDParse.exe" --mode:resolution %* > "%TEMP%\res_args.txt"
@@ -14,6 +17,7 @@ if not "%~1"=="" (
         set "%%A=%%B"
     )
     del "%TEMP%\res_args.txt" 2>nul
+    if defined INPUT set "CLI_MODE=1"
 )
 
 if not exist "%NEW_RAD%" (
@@ -22,6 +26,8 @@ if not exist "%NEW_RAD%" (
     endlocal
     exit /b 1
 )
+
+if "!CLI_MODE!"=="1" goto :cli_mode
 
 echo Work mode:
 echo   1. Convert one BIK file to new resolution
@@ -37,6 +43,80 @@ echo Invalid choice.
 pause
 endlocal
 exit /b 1
+
+:cli_mode
+set "BIK_PATH=!INPUT!"
+if not exist "!BIK_PATH!" (echo ERROR: File not found: !BIK_PATH! & endlocal & exit /b 1)
+
+for %%I in ("!BIK_PATH!") do set "BIK_EXT=%%~xI"
+if /i "!BIK_EXT!"==".mp4" goto :cli_mp4
+
+if not defined RESOLUTION (echo ERROR: -RES:WIDTHxHEIGHT required & endlocal & exit /b 1)
+for /f "tokens=1,2 delims=x" %%A in ("!RESOLUTION!") do (
+    set "NEW_WIDTH=%%A"
+    set "NEW_HEIGHT=%%B"
+)
+if not defined NEW_WIDTH (echo ERROR: Invalid resolution format & endlocal & exit /b 1)
+if not defined NEW_HEIGHT (echo ERROR: Invalid resolution format - use WIDTHxHEIGHT & endlocal & exit /b 1)
+if not defined BITRATE (echo ERROR: -BITRATE:bps required & endlocal & exit /b 1)
+
+for %%I in ("!BIK_PATH!") do set "BIK_NAME=%%~dpnI"
+set "OUT_FILE=!BIK_NAME!_!NEW_WIDTH!x!NEW_HEIGHT!.bik"
+
+echo Converting: !BIK_PATH!
+echo New resolution: !NEW_WIDTH!x!NEW_HEIGHT!, !BITRATE! bps
+echo Output: !OUT_FILE!
+
+if "!DRY_RUN!"=="1" (
+    echo [DRY_RUN] Skipping conversion
+) else (
+    if "!HIDE_WINDOW!"=="1" (
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >nul 2>&1
+    ) else (
+        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >nul 2>&1
+    )
+    if !errorlevel! equ 0 (
+        set "OUT_SIZE=0"
+        for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
+        if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
+    ) else (echo ERROR: conversion failed)
+)
+endlocal
+exit /b 0
+
+:cli_mp4
+if not defined RESOLUTION (echo ERROR: -RES:WIDTHxHEIGHT required & endlocal & exit /b 1)
+for /f "tokens=1,2 delims=x" %%A in ("!RESOLUTION!") do (
+    set "NEW_WIDTH=%%A"
+    set "NEW_HEIGHT=%%B"
+)
+if not defined NEW_WIDTH (echo ERROR: Invalid resolution format & endlocal & exit /b 1)
+if not defined NEW_HEIGHT (echo ERROR: Invalid resolution format - use WIDTHxHEIGHT & endlocal & exit /b 1)
+if not defined BITRATE (echo ERROR: -BITRATE:bps required & endlocal & exit /b 1)
+
+for %%I in ("!BIK_PATH!") do set "MP4_NAME=%%~dpnI"
+set "OUT_FILE=!MP4_NAME!.bik"
+
+echo Converting: !BIK_PATH!
+echo Resolution: !NEW_WIDTH!x!NEW_HEIGHT!, !BITRATE! bps
+echo Output: !OUT_FILE!
+
+if "!DRY_RUN!"=="1" (
+    echo [DRY_RUN] Skipping conversion
+) else (
+    if "!HIDE_WINDOW!"=="1" (
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >nul 2>&1
+    ) else (
+        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >nul 2>&1
+    )
+    if !errorlevel! equ 0 (
+        set "OUT_SIZE=0"
+        for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
+        if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
+    ) else (echo ERROR: conversion failed)
+)
+endlocal
+exit /b 0
 
 :single_file
 echo.
@@ -59,6 +139,7 @@ for /f "tokens=1,2 delims=x" %%A in ("!NEW_RES!") do (
 )
 
 if not defined NEW_WIDTH (echo ERROR: Invalid resolution format & pause & endlocal & exit /b 1)
+if not defined NEW_HEIGHT (echo ERROR: Invalid resolution format - use WIDTHxHEIGHT & pause & endlocal & exit /b 1)
 
 echo.
 echo Enter bitrate (bps):
@@ -75,13 +156,21 @@ echo New resolution: !NEW_WIDTH!x!NEW_HEIGHT!, !NEW_BITRATE! bps
 echo Output: !OUT_FILE!
 echo.
 
-powershell -NoProfile -Command "Start-Process -FilePath '%NEW_RAD%' -ArgumentList 'Binkc \"!BIK_PATH!\" \"!OUT_FILE!\" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /#' -WindowStyle Hidden -Wait"
+if "!DRY_RUN!"=="1" (
+    echo [DRY_RUN] Skipping conversion
+) else (
+    if "!HIDE_WINDOW!"=="1" (
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+    ) else (
+        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+    )
 
-if !errorlevel! equ 0 (
-    set "OUT_SIZE=0"
-    for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
-    if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
-) else (echo ERROR: conversion failed)
+    if !errorlevel! equ 0 (
+        set "OUT_SIZE=0"
+        for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
+        if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
+    ) else (echo ERROR: conversion failed)
+)
 
 pause
 endlocal
@@ -131,12 +220,20 @@ for %%F in ("!SRC_DIR!\*.bik") do (
     set /a IDX+=1
     set "BIK_NAME=%%~nF"
     echo [!IDX!/!TOTAL!] Converting: !BIK_NAME!.bik
-    powershell -NoProfile -Command "Start-Process -FilePath '%NEW_RAD%' -ArgumentList 'Binkc \"%%F\" \"!OUT_DIR!\!BIK_NAME!.bik\" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /#' -WindowStyle Hidden -Wait"
-    if !errorlevel! equ 0 (
-        set "OUT_SIZE=0"
-        for %%I in ("!OUT_DIR!\!BIK_NAME!.bik") do set "OUT_SIZE=%%~zI"
-        if !OUT_SIZE! gtr 0 (echo    OK & set /a DONE+=1) else (echo    ERROR: empty file & del "!OUT_DIR!\!BIK_NAME!.bik" 2>nul)
-    ) else (echo    ERROR: conversion failed)
+    if "!DRY_RUN!"=="1" (
+        echo    [DRY_RUN] Skipping
+    ) else (
+        if "!HIDE_WINDOW!"=="1" (
+            cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "%%F" "!OUT_DIR!\!BIK_NAME!.bik" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        ) else (
+            "%NEW_RAD%" Binkc "%%F" "!OUT_DIR!\!BIK_NAME!.bik" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        )
+        if !errorlevel! equ 0 (
+            set "OUT_SIZE=0"
+            for %%I in ("!OUT_DIR!\!BIK_NAME!.bik") do set "OUT_SIZE=%%~zI"
+            if !OUT_SIZE! gtr 0 (echo    OK & set /a DONE+=1) else (echo    ERROR: empty file & del "!OUT_DIR!\!BIK_NAME!.bik" 2>nul)
+        ) else (echo    ERROR: conversion failed)
+    )
 )
 
 echo.
@@ -178,13 +275,21 @@ echo Resolution: !NEW_WIDTH!x!NEW_HEIGHT!, !NEW_BITRATE! bps
 echo Output: !OUT_FILE!
 echo.
 
-powershell -NoProfile -Command "Start-Process -FilePath '%NEW_RAD%' -ArgumentList 'Binkc \"!MP4_PATH!\" \"!OUT_FILE!\" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /#' -WindowStyle Hidden -Wait"
+if "!DRY_RUN!"=="1" (
+    echo [DRY_RUN] Skipping conversion
+) else (
+    if "!HIDE_WINDOW!"=="1" (
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!MP4_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+    ) else (
+        "%NEW_RAD%" Binkc "!MP4_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+    )
 
-if !errorlevel! equ 0 (
-    set "OUT_SIZE=0"
-    for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
-    if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
-) else (echo ERROR: conversion failed)
+    if !errorlevel! equ 0 (
+        set "OUT_SIZE=0"
+        for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
+        if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
+    ) else (echo ERROR: conversion failed)
+)
 
 pause
 endlocal
