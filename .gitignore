@@ -17,3 +17,5 @@ Converted/
 conversion_log.txt
 failed.txt
 test_output.txt
+third-party/CMDParse/build.log
+third-party/CMDParse/Cross_Converted_BIK.obj

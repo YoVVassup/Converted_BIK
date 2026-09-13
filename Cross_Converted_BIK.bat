@@ -127,11 +127,11 @@ set "_ts=!_ts: =0!"
 set "_rc=1"
 for /l %%A in (1,1,3) do (
     if !_rc! neq 0 (
-        echo [!_ts!] CMD: "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >> "%LOGFILE%"
+        echo [!_ts!] CMD: "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >> "%LOGFILE%"
         if "!HIDE_WINDOW!"=="1" (
-            cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >nul 2>&1
+            cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >nul 2>&1
         ) else (
-            "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >nul 2>&1
+            "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >nul 2>&1
         )
         set "_rc=!errorlevel!"
         if !_rc! neq 0 if %%A lss 3 (
