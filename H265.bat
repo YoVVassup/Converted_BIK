@@ -7,6 +7,10 @@ call "%~dp0config_loader.bat"
 set "SCRIPT_DIR=%~dp0"
 if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1!"
 
+if defined FFMPEG_PATH (
+    if not exist "!FFMPEG_PATH!" if exist "%~dp0!FFMPEG_PATH!" set "FFMPEG_PATH=%~dp0!FFMPEG_PATH!"
+)
+
 set "SOURCE="
 set "OUTPUT="
 set "DRY_RUN=0"
@@ -105,33 +109,57 @@ if errorlevel 1 (
 echo Processing files...
 echo.
 
+if !DRY_RUN! equ 0 if not exist "!FFMPEG_PATH!" (
+    echo ERROR: ffmpeg not found: !FFMPEG_PATH!
+    popd
+    endlocal & exit /b 1
+)
+
 set file_count=0
 
 for %%i in (*.mp4 *.mkv *.mov *.avi *.m4v *.ts *.webm *.flv) do (
     set /a file_count+=1
+)
+
+if !file_count! equ 0 (
+    popd
+    echo ---------------------------------------
+    echo No files found.
+    echo ---------------------------------------
+    echo.
+    endlocal
+    exit /b 0
+)
+
+echo Processing files...
+echo.
+
+set file_count=0
+for %%i in (*.mp4 *.mkv *.mov *.avi *.m4v *.ts *.webm *.flv) do (
+    set /a file_count+=1
     echo Processing [!file_count!]: %%~nxi
     
-    set "logname=%%~ni_!RANDOM!!RANDOM!"
+    set "logname=%%~ni_!RANDOM!!RANDOM!_!time:~0,2!!time:~3,2!!time:~6,2!"
     
     if !DRY_RUN! equ 0 (
         "!FFMPEG_PATH!" -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 1 -passlogfile "!logname!" -f mp4 NUL 2>nul
         if !errorlevel! neq 0 (
             echo    [ERROR] Pass 1 failed: %%~nxi
         ) else (
-            "!FFMPEG_PATH!" -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 2 -passlogfile "!logname!" -movflags +faststart "!output_dir!\%%~ni.mp4" 2>nul
+            "!FFMPEG_PATH!" -y -i "%%i" -c:v libx264 -b:v 15862k -maxrate 15862k -minrate 15862k -bufsize 15862k -preset slow -an -pass 2 -passlogfile "!logname!" -movflags +faststart -y "!output_dir!\%%~ni.mp4" 2>nul
             if !errorlevel! neq 0 (
                 echo    [ERROR] Pass 2 failed: %%~nxi
             ) else (
                 echo Done: %%~ni.mp4
             )
         )
-        
-        if exist "!logname!-0.log" del "!logname!-0.log"
-        if exist "!logname!-0.log.mbtree" del "!logname!-0.log.mbtree"
     ) else (
         echo    [DRY_RUN] Would convert: %%~nxi
         echo Done: %%~ni.mp4
     )
+    
+    if exist "!logname!-0.log" del "!logname!-0.log"
+    if exist "!logname!-0.log.mbtree" del "!logname!-0.log.mbtree"
     
     echo.
 )

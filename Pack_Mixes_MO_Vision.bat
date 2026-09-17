@@ -1,5 +1,5 @@
 @echo off
-chcp 65001 > nul
+chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 rem ===================================================
@@ -7,6 +7,12 @@ rem CONFIGURATION
 rem ===================================================
 
 call "%~dp0config_loader.bat"
+
+if not exist "%TEMP%" (
+    echo ERROR: %%TEMP%% not accessible: %TEMP%
+    pause
+    endlocal & exit /b 1
+)
 
 set "SOURCE_RA1=%FINAL_RA1%"
 set "SOURCE_RA2=%FINAL_RA2%"
@@ -156,11 +162,11 @@ if !DO_RA2! equ 1 if exist "%SOURCE_RA2%" (
                         set "FILENAME=%%~nF"
                         set "FIRST_CHAR=!FILENAME:~0,1!"
                         if /i "!FIRST_CHAR!"=="a" (
-                            copy "%%F" "!TEMP_DIR_A!\" > nul
+                            copy "%%F" "!TEMP_DIR_A!\" >nul
                         ) else if /i "!FILENAME!"=="westlogo" (
-                            copy "%%F" "!TEMP_DIR_A!\" > nul
+                            copy "%%F" "!TEMP_DIR_A!\" >nul
                         ) else if /i "!FIRST_CHAR!"=="s" (
-                            copy "%%F" "!TEMP_DIR_S!\" > nul
+                            copy "%%F" "!TEMP_DIR_S!\" >nul
                         ) else (
                             echo    [WARN] Skipped (not a*/s*/westlogo): %%~nxF
                         )
@@ -224,9 +230,9 @@ if !DO_RA2YR! equ 1 if exist "%SOURCE_RA2YR%" (
                     for %%F in (*.bik) do (
                         set "FILENAME=%%~nF"
                         if /i not "!FILENAME:~-3!"=="_yr" (
-                            copy "%%F" "!TEMP_DIR_YR!\!FILENAME!_yr.bik" > nul
+                            copy "%%F" "!TEMP_DIR_YR!\!FILENAME!_yr.bik" >nul
                         ) else (
-                            copy "%%F" "!TEMP_DIR_YR!\" > nul
+                            copy "%%F" "!TEMP_DIR_YR!\" >nul
                         )
                     )
                     popd
@@ -246,9 +252,9 @@ if !DO_RA2YR! equ 1 if exist "%SOURCE_RA2YR%" (
                 for %%F in (*.bik) do (
                     set "FILENAME=%%~nF"
                     if /i not "!FILENAME:~-3!"=="_yr" (
-                        copy "%%F" "!TEMP_DIR_YR_NOFORMAT!\!FILENAME!_yr.bik" > nul
+                        copy "%%F" "!TEMP_DIR_YR_NOFORMAT!\!FILENAME!_yr.bik" >nul
                     ) else (
-                        copy "%%F" "!TEMP_DIR_YR_NOFORMAT!\" > nul
+                        copy "%%F" "!TEMP_DIR_YR_NOFORMAT!\" >nul
                     )
                 )
                 popd
@@ -319,7 +325,7 @@ rem ===================================================
         echo    [ERROR] !_name! exceeds 2GB ^(!_sz! bytes^)
         exit /b 1
     )
-    "%CCMIX_TOOL%" --create --lmd --game=ra2 --dir "%_src%" --mix "%_dst%" > nul
+    "%CCMIX_TOOL%" --create --lmd --game=ra2 --dir "%_src%" --mix "%_dst%" >nul
     if !errorlevel! neq 0 (
         echo    [ERROR] Failed: !_name!
         echo !_dst!>> "%FAILED_FILE%"

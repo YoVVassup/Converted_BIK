@@ -15,34 +15,34 @@ if not "%~1"=="" (
     del "%TEMP%\diff_args.txt" 2>nul
 )
 
-set "DIFF_TOOL=%TEMP%\mixdiff"
-set "DIFF_LOG=%TEMP%\mixdiff_result.txt"
+set "DIFF_TOOL=%TEMP%\mixdiff_%RANDOM%"
+set "DIFF_LOG=%TEMP%\mixdiff_result_%RANDOM%.txt"
 
 if defined PATH1 if defined PATH2 (
     if not exist "!PATH1!" (echo ERROR: Not found: !PATH1! & endlocal & exit /b 1)
     if not exist "!PATH2!" (echo ERROR: Not found: !PATH2! & endlocal & exit /b 1)
-    if exist "!PATH1!\" (
-        if exist "!PATH2!\" (
-            echo Comparing directories:
-            echo   A: !PATH1!
-            echo   B: !PATH2!
-            call :compare_dirs "!PATH1!" "!PATH2!"
-        ) else (echo ERROR: Both paths must be directories or both must be files & endlocal & exit /b 1)
+    set "_p1_is_dir=0" & set "_p2_is_dir=0"
+    if exist "!PATH1!\" set "_p1_is_dir=1"
+    if exist "!PATH2!\" set "_p2_is_dir=1"
+    if "!_p1_is_dir!" neq "!_p2_is_dir!" (echo ERROR: Both paths must be the same type - files or directories & endlocal & exit /b 1)
+    if "!_p1_is_dir!"=="1" (
+        echo Comparing directories:
+        echo   A: !PATH1!
+        echo   B: !PATH2!
+        call :compare_dirs "!PATH1!" "!PATH2!"
     ) else (
-        if exist "!PATH2!\" (echo ERROR: Both paths must be directories or both must be files & endlocal & exit /b 1) else (
-            set "TEMP1=%DIFF_TOOL%\mix1"
-            set "TEMP2=%DIFF_TOOL%\mix2"
-            if exist "!TEMP1!" rmdir /s /q "!TEMP1!"
-            if exist "!TEMP2!" rmdir /s /q "!TEMP2!"
-            mkdir "!TEMP1!"
-            mkdir "!TEMP2!"
-            "%CCMIX_TOOL%" --extract --lmd --game=ra2 --mix="!PATH1!" --dir="!TEMP1!" >nul 2>nul
-            "%CCMIX_TOOL%" --extract --lmd --game=ra2 --mix="!PATH2!" --dir="!TEMP2!" >nul 2>nul
-            echo Comparing MIX files:
-            echo   A: !PATH1!
-            echo   B: !PATH2!
-            call :compare_dirs "!TEMP1!" "!TEMP2!"
-        )
+        set "TEMP1=%DIFF_TOOL%\mix1"
+        set "TEMP2=%DIFF_TOOL%\mix2"
+        if exist "!TEMP1!" rmdir /s /q "!TEMP1!"
+        if exist "!TEMP2!" rmdir /s /q "!TEMP2!"
+        mkdir "!TEMP1!"
+        mkdir "!TEMP2!"
+        "%CCMIX_TOOL%" --extract --lmd --game=ra2 --mix="!PATH1!" --dir="!TEMP1!" >nul 2>nul
+        "%CCMIX_TOOL%" --extract --lmd --game=ra2 --mix="!PATH2!" --dir="!TEMP2!" >nul 2>nul
+        echo Comparing MIX files:
+        echo   A: !PATH1!
+        echo   B: !PATH2!
+        call :compare_dirs "!TEMP1!" "!TEMP2!"
     )
     if exist "%DIFF_TOOL%" rmdir /s /q "%DIFF_TOOL%" 2>nul
     endlocal

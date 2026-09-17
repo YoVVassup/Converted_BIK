@@ -75,9 +75,9 @@ for %%G in (!GAMES_LIST!) do (
     echo ============================
     echo Processing: !game! >> "%LOGFILE%"
     
-    if "!game!"=="RA1" (call :process_ra1)
-    if "!game!"=="RA2" (call :process_game "RA2" "%MP4_SOURCE%\RA2" "%SOUND_SOURCE%\RA2" "%FINAL_RA2%")
-    if "!game!"=="RA2YR" (call :process_game "RA2YR" "%MP4_SOURCE%\RA2YR" "%SOUND_SOURCE%\RA2YR" "%FINAL_RA2YR%")
+    if "!game!"=="RA1" (call :process_ra1 & if !errorlevel! neq 0 set /a STAT_ERRORS+=1)
+    if "!game!"=="RA2" (call :process_game "RA2" "%MP4_SOURCE%\RA2" "%SOUND_SOURCE%\RA2" "%FINAL_RA2%" & if !errorlevel! neq 0 set /a STAT_ERRORS+=1)
+    if "!game!"=="RA2YR" (call :process_game "RA2YR" "%MP4_SOURCE%\RA2YR" "%SOUND_SOURCE%\RA2YR" "%FINAL_RA2YR%" & if !errorlevel! neq 0 set /a STAT_ERRORS+=1)
 )
 
 if !PROCESS_RA2! equ 1 call :process_clean_bik "RA2"
@@ -115,52 +115,56 @@ echo All files processed >> "%LOGFILE%"
 endlocal
 exit /b 0
 
-:log_msg
-set "_ts=%time:~0,8%"
-set "_ts=!_ts: =0!"
-echo [!_ts!] %~1 >> "%LOGFILE%"
-goto :eof
-
 :run_binkc
 set "_ts=%time:~0,8%"
 set "_ts=!_ts: =0!"
-set "_rc=1"
+set "_tool_out=%TEMP%\binkc_out.tmp"
 for /l %%A in (1,1,3) do (
+    set "_rc=1"
+    echo [!_ts!] CMD: "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >> "%LOGFILE%"
+    if "!HIDE_WINDOW!"=="1" (
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >"!_tool_out!" 2>&1
+    ) else (
+        "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >"!_tool_out!" 2>&1
+    )
+    set "_rc=!errorlevel!"
     if !_rc! neq 0 (
-        echo [!_ts!] CMD: "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >> "%LOGFILE%"
-        if "!HIDE_WINDOW!"=="1" (
-            cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >nul 2>&1
-        ) else (
-            "%NEW_RAD%" Binkc "%~1" "%~2" /N-1 /(%~3 /^)%~4 /v100 /:0 /D%~5 /L0 /O /Z0 /# >nul 2>&1
-        )
-        set "_rc=!errorlevel!"
-        if !_rc! neq 0 if %%A lss 3 (
+        echo    [ERROR] Binkc failed (exit !_rc!)
+        type "!_tool_out!" 2>nul
+        type "!_tool_out!" >> "%LOGFILE%" 2>nul
+        if %%A lss 3 (
             echo    Retry %%A/3...
             timeout /t 2 /nobreak >nul
         )
     )
 )
+del "!_tool_out!" 2>nul
 exit /b !_rc!
 
 :run_binkmix
 set "_ts=%time:~0,8%"
 set "_ts=!_ts: =0!"
-set "_rc=1"
+set "_tool_out=%TEMP%\binkmix_out.tmp"
 for /l %%A in (1,1,3) do (
+    set "_rc=1"
+    echo [!_ts!] CMD: "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >> "%LOGFILE%"
+    if "!HIDE_WINDOW!"=="1" (
+        cscript //nologo "%RUN_HIDDEN%" "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >"!_tool_out!" 2>&1
+    ) else (
+        "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >"!_tool_out!" 2>&1
+    )
+    set "_rc=!errorlevel!"
     if !_rc! neq 0 (
-        echo [!_ts!] CMD: "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >> "%LOGFILE%"
-        if "!HIDE_WINDOW!"=="1" (
-            cscript //nologo "%RUN_HIDDEN%" "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >nul 2>&1
-        ) else (
-            "%OLD_MIX%" "%~1" "%~2" "%~3" /L0 /O /# >nul 2>&1
-        )
-        set "_rc=!errorlevel!"
-        if !_rc! neq 0 if %%A lss 3 (
+        echo    [ERROR] BinkMix failed (exit !_rc!)
+        type "!_tool_out!" 2>nul
+        type "!_tool_out!" >> "%LOGFILE%" 2>nul
+        if %%A lss 3 (
             echo    Retry %%A/3...
             timeout /t 2 /nobreak >nul
         )
     )
 )
+del "!_tool_out!" 2>nul
 exit /b !_rc!
 
 :set_resolution

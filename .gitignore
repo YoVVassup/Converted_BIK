@@ -15,7 +15,15 @@ Converted/
 
 ## Log and temp files
 conversion_log.txt
+conversion_log_*.log
 failed.txt
 test_output.txt
+
+## Build artifacts
 third-party/CMDParse/build.log
 third-party/CMDParse/Cross_Converted_BIK.obj
+
+## Test artifacts
+TEST/keep
+TEST/rename
+TEST/nospaces_test.bik

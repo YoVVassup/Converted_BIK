@@ -22,7 +22,7 @@ echo BIK Preview - quick video check
 echo ========================================
 echo.
 
-set "TEMP_BIK=%TEMP%\preview_%RANDOM%_%RANDOM%.bik"
+set "TEMP_BIK=%TEMP%\preview_%RANDOM%_%RANDOM%_%RANDOM%.bik"
 
 if not exist "!NEW_RAD!" (echo ERROR: !NEW_RAD! not found & pause & endlocal & exit /b 1)
 if not exist "!BINK_PLAY!" (echo ERROR: !BINK_PLAY! not found & pause & endlocal & exit /b 1)
@@ -165,9 +165,13 @@ echo ---------------------
 if exist "!TEMP_BIK!" del "!TEMP_BIK!"
 
 echo [1/2] Converting MP4 to BIK...
-powershell -NoProfile -Command "Start-Process -FilePath '%NEW_RAD%' -ArgumentList 'Binkc \"!MP4_FILE!\" \"!TEMP_BIK!\" /N-1 /(!WIDTH! /)!HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /#' -WindowStyle Hidden -Wait"
+if "!HIDE_WINDOW!"=="1" (
+    cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!MP4_FILE!" "!TEMP_BIK!" /N-1 /(!WIDTH! /)!HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /#
+) else (
+    "%NEW_RAD%" Binkc "!MP4_FILE!" "!TEMP_BIK!" /N-1 /(!WIDTH! /)!HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /#
+)
 
-if !errorlevel! neq 0 (echo ERROR: Conversion failed & pause & endlocal & exit /b 1)
+if !errorlevel! neq 0 (echo ERROR: Conversion failed & del "!TEMP_BIK!" 2>nul & pause & endlocal & exit /b 1)
 
 set "BIK_SIZE=0"
 for %%I in ("!TEMP_BIK!") do set "BIK_SIZE=%%~zI"

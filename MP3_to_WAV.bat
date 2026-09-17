@@ -32,6 +32,9 @@ echo.
 set "OVERWRITE=0"
 set "DRY_RUN=0"
 
+if not exist "%~dp0third-party\CMDParse\CMDParse.exe" (
+    echo ERROR: CMDParse.exe not found & endlocal & exit /b 1
+)
 "%~dp0third-party\CMDParse\CMDParse.exe" --mode:mp3_to_wav %* > "%TEMP%\mp3_args.txt"
 for /f "usebackq tokens=1,* delims==" %%A in ("%TEMP%\mp3_args.txt") do (
     set "%%A=%%B"
@@ -77,6 +80,7 @@ for /r "%SOUND_SOURCE%" %%F in (*.mp3) do (
     set "rel_path=%%F"
     set "rel_path=!rel_path:%CD%\=!"
     set "should_convert=1"
+    set "conv_ts=!time:~0,2!!time:~3,2!!time:~6,2!"
     
     if exist "!wav_file!" if !OVERWRITE! equ 0 (
         set "_wav_size=0"

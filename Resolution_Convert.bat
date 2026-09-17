@@ -20,14 +20,14 @@ if not "%~1"=="" (
     if defined INPUT set "CLI_MODE=1"
 )
 
+if "!CLI_MODE!"=="1" goto :cli_mode
+
 if not exist "%NEW_RAD%" (
     echo ERROR: %NEW_RAD% not found
     pause
     endlocal
     exit /b 1
 )
-
-if "!CLI_MODE!"=="1" goto :cli_mode
 
 echo Work mode:
 echo   1. Convert one BIK file to new resolution
@@ -59,9 +59,13 @@ for /f "tokens=1,2 delims=x" %%A in ("!RESOLUTION!") do (
 if not defined NEW_WIDTH (echo ERROR: Invalid resolution format & endlocal & exit /b 1)
 if not defined NEW_HEIGHT (echo ERROR: Invalid resolution format - use WIDTHxHEIGHT & endlocal & exit /b 1)
 if not defined BITRATE (echo ERROR: -BITRATE:bps required & endlocal & exit /b 1)
+set "CHECK_BITRATE=!BITRATE!"
+call :validate_bitrate
+if !errorlevel! neq 0 (endlocal & exit /b 1)
 
 for %%I in ("!BIK_PATH!") do set "BIK_NAME=%%~dpnI"
 set "OUT_FILE=!BIK_NAME!_!NEW_WIDTH!x!NEW_HEIGHT!.bik"
+set "RES_ARG=/(!NEW_WIDTH! /)!NEW_HEIGHT!"
 
 echo Converting: !BIK_PATH!
 echo New resolution: !NEW_WIDTH!x!NEW_HEIGHT!, !BITRATE! bps
@@ -70,16 +74,21 @@ echo Output: !OUT_FILE!
 if "!DRY_RUN!"=="1" (
     echo [DRY_RUN] Skipping conversion
 ) else (
+    set "_tool_out=%TEMP%\resconv_out.tmp"
     if "!HIDE_WINDOW!"=="1" (
-        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 !RES_ARG! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >"!_tool_out!" 2>&1
     ) else (
-        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 !RES_ARG! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >"!_tool_out!" 2>&1
     )
     if !errorlevel! equ 0 (
         set "OUT_SIZE=0"
         for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
         if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
-    ) else (echo ERROR: conversion failed)
+    ) else (
+        echo    [ERROR] Binkc failed
+        type "!_tool_out!" 2>nul
+    )
+    del "!_tool_out!" 2>nul
 )
 endlocal
 exit /b 0
@@ -93,9 +102,13 @@ for /f "tokens=1,2 delims=x" %%A in ("!RESOLUTION!") do (
 if not defined NEW_WIDTH (echo ERROR: Invalid resolution format & endlocal & exit /b 1)
 if not defined NEW_HEIGHT (echo ERROR: Invalid resolution format - use WIDTHxHEIGHT & endlocal & exit /b 1)
 if not defined BITRATE (echo ERROR: -BITRATE:bps required & endlocal & exit /b 1)
+set "CHECK_BITRATE=!BITRATE!"
+call :validate_bitrate
+if !errorlevel! neq 0 (endlocal & exit /b 1)
 
 for %%I in ("!BIK_PATH!") do set "MP4_NAME=%%~dpnI"
 set "OUT_FILE=!MP4_NAME!.bik"
+set "RES_ARG=/(!NEW_WIDTH! /)!NEW_HEIGHT!"
 
 echo Converting: !BIK_PATH!
 echo Resolution: !NEW_WIDTH!x!NEW_HEIGHT!, !BITRATE! bps
@@ -104,16 +117,22 @@ echo Output: !OUT_FILE!
 if "!DRY_RUN!"=="1" (
     echo [DRY_RUN] Skipping conversion
 ) else (
+    set "_tool_out=%TEMP%\resconv_out.tmp"
     if "!HIDE_WINDOW!"=="1" (
-        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 !RES_ARG! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >"!_tool_out!" 2>&1
     ) else (
-        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 !RES_ARG! /v100 /:0 /D!BITRATE! /L0 /O /Z0 /# >"!_tool_out!" 2>&1
     )
     if !errorlevel! equ 0 (
         set "OUT_SIZE=0"
         for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
         if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
-    ) else (echo ERROR: conversion failed)
+    ) else (
+        echo    [ERROR] Binkc failed
+        type "!_tool_out!" 2>nul
+        del "!OUT_FILE!" 2>nul
+    )
+    del "!_tool_out!" 2>nul
 )
 endlocal
 exit /b 0
@@ -143,12 +162,17 @@ if not defined NEW_HEIGHT (echo ERROR: Invalid resolution format - use WIDTHxHEI
 
 echo.
 echo Enter bitrate (bps):
+echo   Max safe: 1150000 (Bink 1.0 hard limit: 1200000)
 echo   Examples: 400000, 600000, 900000, 1150000
 echo.
 set /p "NEW_BITRATE=Bitrate: "
+set "CHECK_BITRATE=!NEW_BITRATE!"
+call :validate_bitrate
+if !errorlevel! neq 0 (pause & endlocal & exit /b 1)
 
 for %%I in ("!BIK_PATH!") do set "BIK_NAME=%%~dpnI"
 set "OUT_FILE=!BIK_NAME!_!NEW_WIDTH!x!NEW_HEIGHT!.bik"
+set "RES_ARG=/(!NEW_WIDTH! /)!NEW_HEIGHT!"
 
 echo.
 echo Converting: !BIK_PATH!
@@ -160,16 +184,16 @@ if "!DRY_RUN!"=="1" (
     echo [DRY_RUN] Skipping conversion
 ) else (
     if "!HIDE_WINDOW!"=="1" (
-        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 !RES_ARG! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
     ) else (
-        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        "%NEW_RAD%" Binkc "!BIK_PATH!" "!OUT_FILE!" /N-1 !RES_ARG! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
     )
 
     if !errorlevel! equ 0 (
         set "OUT_SIZE=0"
         for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
         if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
-    ) else (echo ERROR: conversion failed)
+    ) else (echo ERROR: conversion failed & del "!OUT_FILE!" 2>nul)
 )
 
 pause
@@ -197,7 +221,13 @@ if not defined NEW_WIDTH (echo ERROR: Invalid resolution format ( WIDTHxHEIGHT )
 if not defined NEW_HEIGHT (echo ERROR: Invalid resolution format ( WIDTHxHEIGHT ) & pause & endlocal & exit /b 1)
 
 echo.
-set /p "NEW_BITRATE=Bitrate (bps): "
+echo Enter bitrate (bps):
+echo   Max safe: 1150000 (Bink 1.0 hard limit: 1200000)
+echo.
+set /p "NEW_BITRATE=Bitrate: "
+set "CHECK_BITRATE=!NEW_BITRATE!"
+call :validate_bitrate
+if !errorlevel! neq 0 (pause & endlocal & exit /b 1)
 
 set "OUT_DIR=!SRC_DIR!\_!NEW_WIDTH!x!NEW_HEIGHT!"
 if not exist "!OUT_DIR!" mkdir "!OUT_DIR!"
@@ -215,6 +245,7 @@ for %%F in ("!SRC_DIR!\*.bik") do set /a TOTAL+=1
 echo Found !TOTAL! BIK files
 echo.
 
+set "RES_ARG=/(!NEW_WIDTH! /)!NEW_HEIGHT!"
 set "IDX=0"
 for %%F in ("!SRC_DIR!\*.bik") do (
     set /a IDX+=1
@@ -224,15 +255,15 @@ for %%F in ("!SRC_DIR!\*.bik") do (
         echo    [DRY_RUN] Skipping
     ) else (
         if "!HIDE_WINDOW!"=="1" (
-            cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "%%F" "!OUT_DIR!\!BIK_NAME!.bik" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+            cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "%%F" "!OUT_DIR!\!BIK_NAME!.bik" /N-1 !RES_ARG! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
         ) else (
-            "%NEW_RAD%" Binkc "%%F" "!OUT_DIR!\!BIK_NAME!.bik" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+            "%NEW_RAD%" Binkc "%%F" "!OUT_DIR!\!BIK_NAME!.bik" /N-1 !RES_ARG! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
         )
         if !errorlevel! equ 0 (
             set "OUT_SIZE=0"
             for %%I in ("!OUT_DIR!\!BIK_NAME!.bik") do set "OUT_SIZE=%%~zI"
             if !OUT_SIZE! gtr 0 (echo    OK & set /a DONE+=1) else (echo    ERROR: empty file & del "!OUT_DIR!\!BIK_NAME!.bik" 2>nul)
-        ) else (echo    ERROR: conversion failed)
+        ) else (echo    ERROR: conversion failed & del "!OUT_DIR!\!BIK_NAME!.bik" 2>nul)
     )
 )
 
@@ -264,10 +295,17 @@ if not defined NEW_WIDTH (echo ERROR: Invalid resolution format ( WIDTHxHEIGHT )
 if not defined NEW_HEIGHT (echo ERROR: Invalid resolution format ( WIDTHxHEIGHT ) & pause & endlocal & exit /b 1)
 
 echo.
-set /p "NEW_BITRATE=Bitrate (bps): "
+echo Enter bitrate (bps):
+echo   Max safe: 1150000 (Bink 1.0 hard limit: 1200000)
+echo.
+set /p "NEW_BITRATE=Bitrate: "
+set "CHECK_BITRATE=!NEW_BITRATE!"
+call :validate_bitrate
+if !errorlevel! neq 0 (pause & endlocal & exit /b 1)
 
 for %%I in ("!MP4_PATH!") do set "MP4_NAME=%%~dpnI"
 set "OUT_FILE=!MP4_NAME!.bik"
+set "RES_ARG=/(!NEW_WIDTH! /)!NEW_HEIGHT!"
 
 echo.
 echo Converting: !MP4_PATH!
@@ -279,18 +317,26 @@ if "!DRY_RUN!"=="1" (
     echo [DRY_RUN] Skipping conversion
 ) else (
     if "!HIDE_WINDOW!"=="1" (
-        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!MP4_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        cscript //nologo "%RUN_HIDDEN%" "%NEW_RAD%" Binkc "!MP4_PATH!" "!OUT_FILE!" /N-1 !RES_ARG! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
     ) else (
-        "%NEW_RAD%" Binkc "!MP4_PATH!" "!OUT_FILE!" /N-1 /(!NEW_WIDTH! /)!NEW_HEIGHT! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
+        "%NEW_RAD%" Binkc "!MP4_PATH!" "!OUT_FILE!" /N-1 !RES_ARG! /v100 /:0 /D!NEW_BITRATE! /L0 /O /Z0 /# >nul 2>&1
     )
 
     if !errorlevel! equ 0 (
         set "OUT_SIZE=0"
         for %%I in ("!OUT_FILE!") do set "OUT_SIZE=%%~zI"
         if !OUT_SIZE! gtr 0 (echo OK: !OUT_SIZE! bytes) else (echo ERROR: empty file & del "!OUT_FILE!" 2>nul)
-    ) else (echo ERROR: conversion failed)
+    ) else (echo ERROR: conversion failed & del "!OUT_FILE!" 2>nul)
 )
 
 pause
 endlocal
+exit /b 0
+
+:validate_bitrate
+if not defined CHECK_BITRATE (exit /b 1)
+set /a "CHECK_BITRATE_NUM=CHECK_BITRATE" 2>nul
+if !errorlevel! neq 0 (echo ERROR: Bitrate must be a number & exit /b 1)
+if !CHECK_BITRATE! leq 0 (echo ERROR: Bitrate must be positive & exit /b 1)
+if !CHECK_BITRATE! gtr 1200000 (echo ERROR: Bitrate !CHECK_BITRATE! exceeds Bink 1.0 hard limit of 1200000 bps & echo Video will drop frames during playback & echo Recommended max: 1150000 bps (accounts for VBR fluctuation) & exit /b 1)
 exit /b 0

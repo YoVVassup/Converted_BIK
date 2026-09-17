@@ -135,7 +135,9 @@ set "_out_dir=%BUILD_ROOT%\%OUTPUT_RA2%\!_group!"
 if not exist "!_out_dir!" mkdir "!_out_dir!"
 
 rem movies01.mix (a* + westlogo + key.ini)
-set "TEMP_DIR=%TEMP%\ra2_m1_%RANDOM%"
+set "_ts=%time: =0%"
+set "_ts=!_ts:~0,2!!_ts:~3,2!!_ts:~6,2!"
+set "TEMP_DIR=%TEMP%\ra2_m1_%RANDOM%_!_ts!"
 if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!"
 mkdir "!TEMP_DIR!"
 set FILE_COUNT=0
@@ -173,7 +175,9 @@ if !FILE_COUNT! GTR 0 (
 if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!" 2>nul
 
 rem movies02.mix (s* + key.ini)
-set "TEMP_DIR=%TEMP%\ra2_m2_%RANDOM%"
+set "_ts=%time: =0%"
+set "_ts=!_ts:~0,2!!_ts:~3,2!!_ts:~6,2!"
+set "TEMP_DIR=%TEMP%\ra2_m2_%RANDOM%_!_ts!"
 if exist "!TEMP_DIR!" rmdir /s /q "!TEMP_DIR!"
 mkdir "!TEMP_DIR!"
 set FILE_COUNT=0

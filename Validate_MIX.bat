@@ -68,6 +68,10 @@ for /r "!SCAN_DIR!" %%F in (*.mix) do (
         if !is_valid! equ 1 (echo   TOO SMALL: !mix_name! ^(!mix_size! bytes^) & set "is_valid=0")
     )
     if !is_valid! equ 1 (
+        if not defined CCMIX_TOOL set "CCMIX_TOOL=third-party\CCMIX\ccmix.exe"
+        if not exist "%CCMIX_TOOL%" (echo   ERROR: %CCMIX_TOOL% not found & set "is_valid=0")
+    )
+    if !is_valid! equ 1 (
         "%CCMIX_TOOL%" --verify --lmd --game=ra2 --mix="!mix_file!" >nul 2>nul
         if !errorlevel! neq 0 (echo   INVALID: !mix_name! & set "is_valid=0")
     )

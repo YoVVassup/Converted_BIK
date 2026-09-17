@@ -33,29 +33,32 @@ if not exist "%CONFIG_FILE%" (
     goto :eof
 )
 
-for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
-    set "key=%%A"
-    set "val=%%B"
-    if defined val (
-        if /i "!key!"=="radtools_new" set "NEW_RAD=!val!"
-        if /i "!key!"=="radtools_old" set "OLD_MIX=!val!"
-        if /i "!key!"=="ccmix" set "CCMIX_TOOL=!val!"
-        if /i "!key!"=="ffmpeg" set "FFMPEG_PATH=!val!"
-        if /i "!key!"=="binkplay" set "BINK_PLAY=!val!"
-        if /i "!key!"=="mp4_source" set "MP4_SOURCE=!val!"
-        if /i "!key!"=="sound_source" set "SOUND_SOURCE=!val!"
-        if /i "!key!"=="clean_bik" set "CLEAN_BIK=!val!"
-        if /i "!key!"=="final_ra1" set "FINAL_RA1=!val!"
-        if /i "!key!"=="final_ra2" set "FINAL_RA2=!val!"
-        if /i "!key!"=="final_ra2yr" set "FINAL_RA2YR=!val!"
-        if /i "!key!"=="build_root" set "BUILD_ROOT=!val!"
-        if /i "!key!"=="files_hd" set "NOLANG_FILES_HD=!val!"
-        if /i "!key!"=="files_noformat" set "NOLANG_FILES_NOFORMAT=!val!"
-        if /i "!key!"=="hide_window" (
-            if /i "!val!"=="true" (set "HIDE_WINDOW=1") else if /i "!val!"=="false" (set "HIDE_WINDOW=0")
+for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
+    set "_line=%%A"
+    if not "!_line:~0,1!"=="#" if not "!_line:~0,1!"=="[" (
+        set "key=%%A"
+        set "val=%%B"
+        if defined val (
+            if /i "!key!"=="radtools_new" set "NEW_RAD=!val!"
+            if /i "!key!"=="radtools_old" set "OLD_MIX=!val!"
+            if /i "!key!"=="ccmix" set "CCMIX_TOOL=!val!"
+            if /i "!key!"=="ffmpeg" set "FFMPEG_PATH=!val!"
+            if /i "!key!"=="binkplay" set "BINK_PLAY=!val!"
+            if /i "!key!"=="mp4_source" set "MP4_SOURCE=!val!"
+            if /i "!key!"=="sound_source" set "SOUND_SOURCE=!val!"
+            if /i "!key!"=="clean_bik" set "CLEAN_BIK=!val!"
+            if /i "!key!"=="final_ra1" set "FINAL_RA1=!val!"
+            if /i "!key!"=="final_ra2" set "FINAL_RA2=!val!"
+            if /i "!key!"=="final_ra2yr" set "FINAL_RA2YR=!val!"
+            if /i "!key!"=="build_root" set "BUILD_ROOT=!val!"
+            if /i "!key!"=="files_hd" set "NOLANG_FILES_HD=!val!"
+            if /i "!key!"=="files_noformat" set "NOLANG_FILES_NOFORMAT=!val!"
+            if /i "!key!"=="hide_window" (
+                if /i "!val!"=="true" (set "HIDE_WINDOW=1") else if /i "!val!"=="false" (set "HIDE_WINDOW=0")
+            )
+            if /i "!key!"=="log_file" if not defined _cfg_logfile set "_cfg_logfile=!val!"
+            if /i "!key!"=="failed_file" if not defined _cfg_failedfile set "_cfg_failedfile=!val!"
         )
-        if /i "!key!"=="log_file" if not defined _cfg_logfile set "_cfg_logfile=!val!"
-        if /i "!key!"=="failed_file" if not defined _cfg_failedfile set "_cfg_failedfile=!val!"
     )
 )
 
@@ -78,11 +81,15 @@ rem ===================================================
 if exist "%LOGFILE%" (
     for %%I in ("%LOGFILE%") do if %%~zI gtr 1048576 (
         set "STAMP="
-        for /f "tokens=2 delims==" %%D in ('wmic os get localdatetime /value 2^>nul') do set "DT=%%D"
-        if defined DT set "STAMP=!DT:~0,4!!DT:~4,2!!DT:~6,2!_!DT:~8,2!!DT:~10,2!!DT:~12,2!"
+        for /f %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss" 2^>nul') do set "STAMP=%%D"
         if not defined STAMP set "STAMP=!RANDOM!!RANDOM!"
         set "ROTATED=%LOGFILE%_!STAMP!.log"
         move "%LOGFILE%" "!ROTATED!" >nul 2>&1
         echo [CONFIG] Log rotated: !ROTATED! >&2
     )
 )
+
+set "DT="
+set "STAMP="
+set "_cfg_logfile="
+set "_cfg_failedfile="

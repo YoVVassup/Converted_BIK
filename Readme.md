@@ -9,7 +9,7 @@
 [![RAD Tools](https://img.shields.io/badge/RAD_Game_Tools-Bink_1.0-orange)](https://www.radgametools.com/)
 [![FFmpeg](https://img.shields.io/badge/FFmpeg-7.x-purple)](https://ffmpeg.org/)
 [![Batch](https://img.shields.io/badge/Language-Windows_Batch-grey)](#)
-[![Tests](https://img.shields.io/badge/Tests-118_passing-brightgreen)](TEST/)
+[![Tests](https://img.shields.io/badge/Tests-30_suites-brightgreen)](TEST/)
 
 Automated MP4 -> BIK conversion pipeline with WAV audio mixing and MIX archive packaging for the Command & Conquer franchise.
 
@@ -232,7 +232,7 @@ Resolution_Convert.bat [-INPUT:file] [-RES:WIDTHxHEIGHT] [-BITRATE:bps] [-DRY_RU
 Interactive tool when run without flags. Non-interactive CLI mode:
 - `-INPUT:file` -- Source BIK or MP4 file
 - `-RES:WIDTHxHEIGHT` -- Target resolution (e.g., 1280x720)
-- `-BITRATE:bps` -- Target bitrate in bps
+- `-BITRATE:bps` -- Target bitrate in bps (validated: max 1,200,000, recommended max 1,150,000)
 - `-DRY_RUN` -- Preview mode (no conversion)
 
 Three modes:
@@ -365,19 +365,40 @@ Validate_MIX.bat -SCAN_DIR:Build\MOV\Original
 TEST\test_all.bat
 ```
 
-Runs 118 automated tests across 9 modules:
+Runs 30 automated test suites:
 
-| Module | Tests | Description |
-|--------|-------|-------------|
-| CMDParse | 36 | Argument parser: all modes, filters, defaults |
-| config_loader | 5 | Config loading, path defaults, variable access |
-| Filters | 8 | findstr logic, semicolons, substring rejection |
-| Pack_Mixes_MO_Vision | 6 | FILTER_GAME/GROUP parsing, variable shadowing |
-| Pack_Mixes_Original | 6 | AUDIO_GROUP parsing, defaults, splits |
-| Cross_Converted_BIK | 9 | Game flags, RESOLUTION_FILTER findstr, defaults |
-| Non-interactive CLI | 12 | CLI flags for MIX_Diff, Validate_MIX, H265, Resolution_Convert |
-| Log Rotation | 18 | Auto-rotation when log > 1MB, size thresholds, rotation counter |
-| PACK_MO_RETRY | 18 | MO Vision retry/dry_run/incremental output, CMDParse integration |
+| Suite | Script | Description |
+|-------|--------|-------------|
+| 1 | test_cmdparse.bat | Argument parser: all modes, filters, defaults |
+| 2 | test_config_loader.bat | Config loading, path defaults, variable access |
+| 3 | test_filters.bat | findstr logic, semicolons, substring rejection |
+| 4 | test_pack_mo.bat | FILTER_GAME/GROUP parsing, variable shadowing |
+| 5 | test_pack_original.bat | AUDIO_GROUP parsing, defaults, splits |
+| 6 | test_cross.bat | Game flags, RESOLUTION_FILTER findstr, defaults |
+| 7 | test_cli.bat | CLI flags for MIX_Diff, Validate_MIX, H265, Resolution_Convert |
+| 8 | test_log_rotation.bat | Auto-rotation when log > 1MB, size thresholds |
+| 9 | test_resolution_convert.bat | Resolution conversion logic |
+| 10 | test_mp3_to_wav.bat | MP3 to WAV conversion |
+| 11 | test_preview.bat | Preview workflow |
+| 12 | test_cli_improved.bat | Improved CLI flag handling |
+| 13 | test_dry_run_incremental.bat | DRY_RUN, INCREMENTAL, RETRY modes |
+| 14 | test_validate_mix.bat | MIX validation |
+| 15 | test_h265.bat | H265 conversion |
+| 16 | test_mp3_to_wav_full.bat | MP3 to WAV full coverage |
+| 17 | test_resolution_convert_full.bat | Resolution conversion full coverage |
+| 18 | test_cross_full.bat | Cross conversion full coverage |
+| 19 | test_preview_full.bat | Preview full coverage |
+| 20 | test_pack_mo_full.bat | MO Vision packing full coverage |
+| 21 | test_pack_original_full.bat | Original packing full coverage |
+| 22 | test_mix_diff_full.bat | MIX diff full coverage |
+| 23 | test_config_loader_full.bat | Config loader full coverage |
+| 24 | test_config_loader_edge.bat | Config loader edge cases |
+| 25 | test_cross_errors.bat | Cross conversion error paths + stats |
+| 26 | test_mp3_edge.bat | MP3 to WAV edge cases |
+| 27 | test_h265_edge.bat | H265 edge cases |
+| 28 | test_preview_edge.bat | Preview validation |
+| 29 | test_validate_mix_edge.bat + test_mix_diff_edge.bat + test_pack_edge.bat | Validate, diff, pack edge cases |
+| 30 | test_resolution_convert_edge.bat | Resolution conversion error paths |
 
 **Example:**
 ```batch
@@ -487,6 +508,8 @@ overwrite=false
 | `600pyr` | 800x600 | -- | 1100 kbps RA2YR only |
 | `noformat` | -- | 1024x564 | 400 kbps RA1 only |
 
+> **Note:** Bitrate is the only parameter that affects video quality in Bink 1.0. Resolution is purely a scaling parameter — the encoder does not allocate more bits to larger resolutions. Bink 1.0 hard-caps bitrate at 1,200,000 bps; exceeding this causes dropped frames during playback. Scripts use 1,150,000 as max to account for VBR fluctuation (~±35,000 bps).
+
 ## Supported Voice Groups
 
 ### Red Alert 1
@@ -503,6 +526,8 @@ overwrite=false
 - **Platform**: Windows 10+ (cmd.exe only)
 - **Encoding**: ~3-10 min per MP4 file
 - **MIX limit**: Max 2GB per MIX file (x86)
+- **Bitrate limit**: Bink 1.0 hard-caps at 1,200,000 bps ([source](https://ru.wikipedia.org/wiki/Bink)). Exceeding this causes dropped frames during playback. Scripts use 1,150,000 as max to account for VBR fluctuation (~±35,000 bps observed during encoding)
+- **Video quality**: Bitrate is the only parameter that affects quality in Bink 1.0. Resolution is purely a scaling parameter.
 - **Hidden windows**: radvideo64 and BinkMix run hidden via `run_hidden.vbs` (configurable with `hide_window=true/false` in config.ini)
 - **Incremental**: `-INCREMENTAL` skips converted files
 - **Retry**: Failed files -> `failed.txt`, use `-RETRY`
@@ -555,15 +580,42 @@ overwrite=false
 |-- Converted/            H265.bat output
 |
 +-- TEST/
-    |-- test_all.bat      Test runner (118 tests)
+    |-- test_all.bat              Test runner (30 suites)
     |-- test_cmdparse.bat
     |-- test_config_loader.bat
+    |-- test_config_loader_full.bat
+    |-- test_config_loader_edge.bat
     |-- test_cross.bat
+    |-- test_cross_full.bat
+    |-- test_cross_errors.bat
     |-- test_filters.bat
     |-- test_pack_mo.bat
+    |-- test_pack_mo_full.bat
     |-- test_pack_original.bat
+    |-- test_pack_original_full.bat
+    |-- test_pack_edge.bat
     |-- test_cli.bat
-    +-- test_log_rotation.bat
+    |-- test_cli_improved.bat
+    |-- test_log_rotation.bat
+    |-- test_dry_run_incremental.bat
+    |-- test_h265.bat
+    |-- test_h265_edge.bat
+    |-- test_mp3_to_wav.bat
+    |-- test_mp3_to_wav_full.bat
+    |-- test_mp3_edge.bat
+    |-- test_resolution_convert.bat
+    |-- test_resolution_convert_full.bat
+    |-- test_resolution_convert_edge.bat
+    |-- test_preview.bat
+    |-- test_preview_full.bat
+    |-- test_preview_edge.bat
+    |-- test_validate_mix.bat
+    |-- test_validate_mix_edge.bat
+    |-- test_mix_diff_full.bat
+    |-- test_mix_diff_edge.bat
+    |-- create_mix.bat
+    |-- create_mix.ps1
+    +-- vmix_rel_test/
 ```
 
 ## Credits

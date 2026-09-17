@@ -9,7 +9,7 @@
 [![RAD Tools](https://img.shields.io/badge/RAD_Game_Tools-Bink_1.0-orange)](https://www.radgametools.com/)
 [![FFmpeg](https://img.shields.io/badge/FFmpeg-7.x-purple)](https://ffmpeg.org/)
 [![Batch](https://img.shields.io/badge/Language-Windows_Batch-grey)](#)
-[![Tests](https://img.shields.io/badge/Tests-118_%D0%BF%D1%80%D0%BE%D0%B9%D0%B4%D0%B5%D0%BD%D0%BE-brightgreen)](TEST/)
+[![Tests](https://img.shields.io/badge/Tests-30_%D1%81%D1%83%D1%82%D0%B5%D0%B1%D0%BE%D0%B2-brightgreen)](TEST/)
 
 Автоматический пайплайн конвертации MP4 -> BIK с микшированием WAV и упаковкой в MIX-архивы для серии Command & Conquer.
 
@@ -365,19 +365,40 @@ Validate_MIX.bat -SCAN_DIR:Build\MOV\Original
 TEST\test_all.bat
 ```
 
-Запускает 118 автоматизированных тестов в 9 модулях:
+Запускает 30 автоматизированных тестовых наборов:
 
-| Модуль | Тесты | Описание |
-|--------|-------|----------|
-| CMDParse | 36 | Парсер аргументов: все режимы, фильтры, дефолты |
-| config_loader | 5 | Загрузка конфига, дефолты путей, доступность переменных |
-| Filters | 8 | Логика findstr, точки с запятой, отклонение подстрок |
-| Pack_Mixes_MO_Vision | 6 | Парсинг FILTER_GAME/GROUP, защита от затенения переменных |
-| Pack_Mixes_Original | 6 | Парсинг AUDIO_GROUP, дефолты, разбиение |
-| Cross_Converted_BIK | 9 | Флаги игр, RESOLUTION_FILTER findstr, дефолты |
-| Non-interactive CLI | 12 | CLI флаги для MIX_Diff, Validate_MIX, H265, Resolution_Convert |
-| Log Rotation | 18 | Автоматическая ротация при лог > 1MB, пороги размера, счётчик ротаций |
-| PACK_MO_RETRY | 18 | Вывод retry/dry_run/incremental для MO Vision, интеграция CMDParse |
+| Набор | Скрипт | Описание |
+|-------|--------|----------|
+| 1 | test_cmdparse.bat | Парсер аргументов: все режимы, фильтры, дефолты |
+| 2 | test_config_loader.bat | Загрузка конфига, дефолты путей, доступность переменных |
+| 3 | test_filters.bat | Логика findstr, точки с запятой, отклонение подстрок |
+| 4 | test_pack_mo.bat | Парсинг FILTER_GAME/GROUP, защита от затенения переменных |
+| 5 | test_pack_original.bat | Парсинг AUDIO_GROUP, дефолты, разбиение |
+| 6 | test_cross.bat | Флаги игр, RESOLUTION_FILTER findstr, дефолты |
+| 7 | test_cli.bat | CLI флаги для MIX_Diff, Validate_MIX, H265, Resolution_Convert |
+| 8 | test_log_rotation.bat | Автоматическая ротация при лог > 1MB, пороги размера |
+| 9 | test_resolution_convert.bat | Логика конвертации разрешений |
+| 10 | test_mp3_to_wav.bat | Конвертация MP3 в WAV |
+| 11 | test_preview.bat | Рабочий процесс предпросмотра |
+| 12 | test_cli_improved.bat | Улучшенная обработка CLI флагов |
+| 13 | test_dry_run_incremental.bat | Режимы DRY_RUN, INCREMENTAL, RETRY |
+| 14 | test_validate_mix.bat | Валидация MIX |
+| 15 | test_h265.bat | Конвертация H265 |
+| 16 | test_mp3_to_wav_full.bat | MP3 в WAV полное покрытие |
+| 17 | test_resolution_convert_full.bat | Конвертация разрешений полное покрытие |
+| 18 | test_cross_full.bat | Кросс-конвертация полное покрытие |
+| 19 | test_preview_full.bat | Предпросмотр полное покрытие |
+| 20 | test_pack_mo_full.bat | Упаковка MO Vision полное покрытие |
+| 21 | test_pack_original_full.bat | Упаковка оригинальных игр полное покрытие |
+| 22 | test_mix_diff_full.bat | MIX diff полное покрытие |
+| 23 | test_config_loader_full.bat | Загрузка конфига полное покрытие |
+| 24 | test_config_loader_edge.bat | Граничные случаи загрузки конфига |
+| 25 | test_cross_errors.bat | Кросс-конвертация пути ошибок + статистика |
+| 26 | test_mp3_edge.bat | Граничные случаи MP3 в WAV |
+| 27 | test_h265_edge.bat | Граничные случаи H265 |
+| 28 | test_preview_edge.bat | Валидация предпросмотра |
+| 29 | test_validate_mix_edge.bat + test_mix_diff_edge.bat + test_pack_edge.bat | Граничные случаи валидации, diff, упаковки |
+| 30 | test_resolution_convert_edge.bat | Пути ошибок конвертации разрешений |
 
 **Пример:**
 ```batch
@@ -555,15 +576,42 @@ overwrite=false
 |-- Converted/            Результаты H265.bat
 |
 +-- TEST/
-    |-- test_all.bat      Тест-раннер (118 тестов)
+    |-- test_all.bat              Тест-раннер (30 наборов)
     |-- test_cmdparse.bat
     |-- test_config_loader.bat
+    |-- test_config_loader_full.bat
+    |-- test_config_loader_edge.bat
     |-- test_cross.bat
+    |-- test_cross_full.bat
+    |-- test_cross_errors.bat
     |-- test_filters.bat
     |-- test_pack_mo.bat
+    |-- test_pack_mo_full.bat
     |-- test_pack_original.bat
+    |-- test_pack_original_full.bat
+    |-- test_pack_edge.bat
     |-- test_cli.bat
-    +-- test_log_rotation.bat
+    |-- test_cli_improved.bat
+    |-- test_log_rotation.bat
+    |-- test_dry_run_incremental.bat
+    |-- test_h265.bat
+    |-- test_h265_edge.bat
+    |-- test_mp3_to_wav.bat
+    |-- test_mp3_to_wav_full.bat
+    |-- test_mp3_edge.bat
+    |-- test_resolution_convert.bat
+    |-- test_resolution_convert_full.bat
+    |-- test_resolution_convert_edge.bat
+    |-- test_preview.bat
+    |-- test_preview_full.bat
+    |-- test_preview_edge.bat
+    |-- test_validate_mix.bat
+    |-- test_validate_mix_edge.bat
+    |-- test_mix_diff_full.bat
+    |-- test_mix_diff_edge.bat
+    |-- create_mix.bat
+    |-- create_mix.ps1
+    +-- vmix_rel_test/
 ```
 
 ## Благодарности
